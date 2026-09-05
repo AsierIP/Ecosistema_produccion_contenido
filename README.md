@@ -20,6 +20,8 @@ ni hereda cuentas entre canales.
 - Cápsulas y ejecutor de etapas editoriales con modelo por rol, presupuesto de
   contexto, recibo estructurado y medición del consumo que devuelve el proveedor.
 - Inspección y decodificación real con FFmpeg, planes de montaje CPU/NVENC.
+- Adaptador RIFE por segmento, probado en la GPU real con conservación de todos
+  los fotogramas nativos; aún pendiente de cualificación artística por canal.
 - Panel local con estado de los canales y cuestionario descargable de alta.
 
 ## Inicio
@@ -53,6 +55,7 @@ python -m ecosystem dispatch-packet --job ID --role creative --artifact ficha-fu
 python -m ecosystem run-stage --job ID --role creative --artifact ficha-fuentes.json --execute
 python -m ecosystem usage
 python -m ecosystem media-probe master.mp4 --decode
+python -m ecosystem conform-rife --source segmento-125-frames.mp4 --output candidato-250-frames.mp4
 ```
 
 `run-stage` ejecuta creative, metadata o quality con la sesión Codex existente.
@@ -71,9 +74,10 @@ ejecutarse. Un recibo ACCEPT nunca cierra por sí solo una producción.
 
 La GPU detectada es una RTX 5070 de 12 GB. El perfil vigente de Religion permite
 RIFE 2× por tres segmentos distintos; esa regla no se impone a otros canales.
-La integración RIFE genérica queda bloqueada hasta comprobar el tratamiento de
-fotogramas extremos de la herramienta instalada. Nunca se usa una repetición
-indefinida para completar duración ni se estira la voz.
+El adaptador específico de RIFE comprueba el tratamiento de fotogramas extremos
+de la herramienta instalada y conserva su evidencia; sigue pendiente la
+cualificación por canal. Nunca se usa una repetición indefinida para completar
+duración ni se estira la voz.
 
 ## Documentación
 
@@ -81,6 +85,7 @@ indefinida para completar duración ni se estira la voz.
 - [Auditoría y conocimiento extraído](docs/AUDIT.md)
 - [Operación, recuperación y migración](docs/OPERATIONS.md)
 - [Modelos y costes](docs/MODELS-AND-COST.md)
+- [Pruebas y límites verificados](docs/VALIDATION.md)
 
 Código, perfiles públicos, prompts y pruebas están versionados. Los libros,
 medios, pesos, bases de datos, cachés y credenciales quedan fuera de Git.

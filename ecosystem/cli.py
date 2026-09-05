@@ -37,6 +37,9 @@ def main(argv=None):
     search.add_argument("--source-id", required=True)
     search.add_argument("--query", required=True)
     search.add_argument("--limit", type=int, default=5)
+    rife = sub.add_parser("conform-rife", help="Conformar un segmento 125→250 con GPU y comprobar todos los frames nativos")
+    rife.add_argument("--source", type=Path, required=True)
+    rife.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     root = args.root.resolve()
     try:
@@ -90,6 +93,9 @@ def main(argv=None):
             from .corpus import Corpus
             corpus = Corpus(root / ".runtime/corpus.sqlite3")
             result = corpus.index(args.source_id, args.path) if args.command == "index-source" else corpus.search(args.source_id, args.query, args.limit)
+        elif args.command == "conform-rife":
+            from .rife import conform_segment
+            result = conform_segment(args.source, args.output, root=root)
         print(json.dumps(result, indent=2, ensure_ascii=False, allow_nan=False))
         return 1 if isinstance(result, dict) and result.get("status") == "FAIL" else 0
     except (ValueError, OSError, KeyError, RuntimeError, StopIteration) as exc:
