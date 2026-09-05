@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "id": "sabias-que",
+  "name": "¿Sabías que?",
+  "aliases": ["¿Sabias que?"],
+  "lifecycle": "discovery",
+  "language": "es-ES",
+  "theme": "Curiosidades verificables",
+  "audience": null,
+  "sources": [{"id": "doval-enciclopedia-curiosidades-1994", "title": "Enciclopedia de las curiosidades: El libro de los hechos insólitos", "author": "Gregorio Doval", "kind": "local_pdf", "locator_required": true, "redistribute": false}],
+  "editorial_policy": "separate_claim_source_evidence_script_adaptation_on_screen_text",
+  "fact_check_required": true,
+  "visual": {"style": "Cartoon colorido; biblia visual pendiente", "approved": false, "profile": "natural-variable-v1"},
+  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "The Patient Teacher, sonrisa vocal y energía efusiva sostenida", "retiming": false},
+  "branding": {"status": "logo_approved_banner_pending", "logo_reference": "sabias-que-logo-neon-black-v04", "palette": ["hot pink", "lime green", "black"]},
+  "platforms": {
+    "youtube": {"enabled": true, "account": null, "handle": null},
+    "tiktok": {"enabled": true, "account": null, "handle": null}
+  },
+  "release": {"mode": "awaiting_user_policy", "language_authorized": "es-ES", "ai_disclosure": true},
+  "daily_reels": 1,
+  "migration": {"legacy_key": "sabias-que", "canary_passed": false, "legacy_writer_reconciled": false},
+  "verified_configuration_on": "2026-09-05"
+}

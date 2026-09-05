@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "timezone": "Europe/Madrid",
+  "daily_reels_per_channel": 1,
+  "production_time": "09:00",
+  "production_time_status": "proposed",
+  "publication_time": "19:00",
+  "publication_time_status": "proposed",
+  "max_gpu_jobs": 1,
+  "max_remote_jobs": 1,
+  "backlog_policy": "resume_oldest_before_new_day",
+  "paid_api_enabled": false,
+  "monthly_budget_eur": null,
+  "runtime": "codex_subscription",
+  "automatic_execution_enabled": false,
+  "activation_requires": ["channel_readiness", "end_to_end_canary", "provider_sessions"],
+  "git_remote_requested": "git@github.com:AsierIP/Ecosistema_produccion_contenido.git"
+}

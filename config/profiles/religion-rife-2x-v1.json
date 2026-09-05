@@ -1,0 +1,14 @@
+{
+  "timeline_mode": "rife_2x_por_segmento",
+  "segment_count": 3,
+  "input_frames_per_segment": 125,
+  "output_frames_per_segment": 250,
+  "output_fps": 24,
+  "total_output_frames": 750,
+  "require_provenance_files": true,
+  "voice_speed_factor": 1.0,
+  "rife_model": "rife-v4.25",
+  "gpu_required": true,
+  "caption_profile": "early-reels-ivory-gold-v01",
+  "origin": "Religion contract read 2026-09-05"
+}

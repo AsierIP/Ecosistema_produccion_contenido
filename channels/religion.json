@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "religion",
+  "name": "Las Palabras de Cristo",
+  "aliases": ["Religion", "LUMEN"],
+  "lifecycle": "migration",
+  "language": "es-ES",
+  "theme": "Enseñanzas bíblicas y reflexión cristiana",
+  "audience": "general hispanohablante",
+  "sources": [{"id": "rvr1909", "title": "Biblia Reina-Valera 1909", "kind": "local_corpus", "locator_required": true, "redistribute": false}],
+  "editorial_policy": "separate_literal_quote_context_editorial_adaptation",
+  "visual": {"style": "Cine fotorrealista vertical", "approved": true, "profile": "religion-rife-2x-v1", "canonical_characters": true},
+  "voice": {"provider": "Google Gemini TTS", "id": "Algenib", "locale": "es-CO", "approved": true, "retiming": false},
+  "branding": {"status": "existing", "caption_profile": "early-reels-ivory-gold-v01"},
+  "platforms": {
+    "youtube": {"enabled": true, "account": "UCqi7xNodxQSP5-EDCMwL4PA", "handle": "@laspalabrasdecristo"},
+    "tiktok": {"enabled": true, "account": "@laspalabrasdecristo", "handle": "@laspalabrasdecristo"}
+  },
+  "release": {"mode": "automatic_after_qa", "language_authorized": "es-ES", "ai_disclosure": true},
+  "daily_reels": 1,
+  "migration": {"legacy_key": "religion", "canary_passed": false, "legacy_writer_reconciled": false},
+  "verified_configuration_on": "2026-09-05"
+}

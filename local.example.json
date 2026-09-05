@@ -1,0 +1,8 @@
+{
+  "channels": {
+    "religion": {"legacy_root": "C:/path/Religion", "provider_profile": "ReelsVibe", "source_paths": {"rvr1909": "C:/path/RV1909"}},
+    "sabias-que": {"legacy_root": "C:/path/SabiasQue", "provider_profile": null, "source_paths": {"doval-enciclopedia-curiosidades-1994": "C:/path/book.pdf"}}
+  },
+  "tools": {"ffmpeg": null, "ffprobe": null, "video2x": null, "gpu_python": null},
+  "secrets": "Use the operating system credential store; never place keys here."
+}

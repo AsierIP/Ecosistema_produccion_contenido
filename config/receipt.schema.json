@@ -1,0 +1,11 @@
+{
+  "type": "object", "additionalProperties": false,
+  "required": ["job_id", "role", "decision", "artifacts", "checks", "blockers"],
+  "properties": {
+    "job_id": {"type": "string"}, "role": {"type": "string"},
+    "decision": {"type": "string", "enum": ["ACCEPT", "REJECT", "BLOCK"]},
+    "artifacts": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "bytes"], "properties": {"path": {"type": "string"}, "sha256": {"type": "string"}, "bytes": {"type": "integer"}}}},
+    "checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "passed", "evidence"], "properties": {"name": {"type": "string"}, "passed": {"type": "boolean"}, "evidence": {"type": "string"}}}},
+    "blockers": {"type": "array", "items": {"type": "string"}}
+  }
+}

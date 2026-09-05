@@ -1,0 +1,9 @@
+{
+  "font_name": "Segoe UI Semibold", "font_size": 39,
+  "play_res": [720, 1280], "fill_ass": "&H00E8F7FF", "fill_rgb": "#FFF7E8",
+  "glow_ass": "&H404EA8D5", "glow_rgb": "#D5A84E", "glow_outline": 7.2,
+  "outline_ass": "&H00100E0C", "outline_width": 3.0,
+  "shadow_ass": "&H78000000", "shadow_depth": 1.4,
+  "bold": true, "alignment": 2, "margins": [54, 54, 336],
+  "rendered_rgb_qa_required": true
+}

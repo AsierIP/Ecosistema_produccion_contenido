@@ -1,0 +1,7 @@
+{
+  "timeline_mode": "native",
+  "require_provenance_files": true,
+  "voice_speed_factor": 1.0,
+  "duration_policy": "natural_narration",
+  "interpolated_across_cuts": false
+}
