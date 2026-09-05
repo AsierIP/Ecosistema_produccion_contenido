@@ -31,7 +31,7 @@ TEMPLATE = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><meta n
 <section class="section" id="nuevo"><span class="eyebrow">NUEVA IDEA</span><h2>Cuéntanos tu próximo canal</h2><p class="muted">Guarda un briefing y entrégalo a Codex para registrar el canal. Se conservarán las decisiones aprobadas y se preguntará solo lo que falte.</p><form id="brief" class="card"><div class="form-grid">
 <label>Nombre del canal<input name="name" required placeholder="El nombre de tu nueva idea"></label><label>Temática<input name="theme" required placeholder="Qué descubrirá tu audiencia"></label>
 <label>Libro o fuente principal<input name="source_title" required placeholder="Título, autor y edición"></label><label>Audiencia<input name="audience" placeholder="Público, idioma y temas excluidos"></label>
-<label class="wide">Estilo artístico<textarea name="visual_style" required placeholder="Referencias, paleta, personajes y movimiento"></textarea></label>
+<label class="wide">Idea principal del estilo artístico<textarea name="visual_style" required placeholder="Por ejemplo: cartoon 2D con animaciones sencillas. Te mostraremos prototipos para elegir o ajustar."></textarea></label>
 <label>Proveedor de voz<input name="voice_provider" placeholder="Google, voz local…"></label><label>Voz y tono<input name="voice_id" placeholder="Si ya lo tienes decidido"></label>
 <label>Cuenta de YouTube<input name="youtube_account" placeholder="ID del canal; nunca contraseñas"></label><label>Cuenta de TikTok<input name="tiktok_account" placeholder="@identificador"></label>
 <label class="wide">Logotipo y portada<textarea name="branding_brief" placeholder="Qué quieres transmitir y elementos imprescindibles"></textarea></label>

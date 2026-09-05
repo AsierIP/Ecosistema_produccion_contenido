@@ -10,6 +10,9 @@ lo ya conocido y preguntar solo los campos que faltan por bloques breves. Regist
 la ficha con `python -m ecosystem onboard --answers ...`. No inventar cuentas,
 fuentes, consentimiento, estilo aprobado ni un presupuesto. Crear logo y portada
 con las herramientas de imagen disponibles cuando el briefing esté definido.
+Para estilos, el usuario proporciona una idea principal: mostrar dos o tres
+prototipos comparables antes de fijar la biblia visual. No pedirle una definición
+artística completa ni marcar un estilo como aprobado solo por recibir la idea.
 
 Para la producción diaria, ejecutar primero `python -m ecosystem daily` y leer
 su resultado compacto. Un trabajo en cola no equivale a un vídeo terminado.

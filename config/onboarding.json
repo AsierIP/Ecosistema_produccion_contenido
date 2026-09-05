@@ -1,10 +1,11 @@
 {
   "schema_version": 1,
   "trigger": "Tengo una idea para un nuevo canal",
-  "rules": ["Recuperar decisiones existentes antes de preguntar", "Preguntar como máximo tres bloques cada vez", "Nunca solicitar contraseñas ni códigos en la ficha", "No activar con campos provisionales"],
+  "rules": ["Recuperar decisiones existentes antes de preguntar", "Preguntar como máximo tres bloques cada vez", "Nunca solicitar contraseñas ni códigos en la ficha", "No activar con campos provisionales", "El usuario aporta una idea artística principal; mostrar prototipos comparables antes de cerrar el estilo", "Una dirección artística confirmada no equivale a un prototipo final elegido"],
+  "visual_prototyping": {"workflow": ["idea principal del usuario", "dos o tres prototipos con la misma escena", "mostrar las opciones", "eleccion o ajustes del usuario", "biblia visual versionada"], "same_comparison_scene": true, "include_animation_approach": true, "approved_requires_user_selection": true},
   "blocks": [
     {"id": "editorial", "questions": [{"field": "name", "label": "¿Cómo se llama el canal?"}, {"field": "theme", "label": "¿Qué temática y promesa tiene?"}, {"field": "sources", "label": "¿Qué libro, autor y edición o fuentes usaremos? ¿Dónde están?"}, {"field": "audience", "label": "¿A quién va dirigido, en qué idioma y qué temas excluimos?"}]},
-    {"id": "art", "questions": [{"field": "visual.style", "label": "¿Qué estilo artístico, referencias, colores, personajes y movimiento buscas?"}, {"field": "voice", "label": "¿Qué voz, idioma y tono quieres? ¿Habrá música?"}, {"field": "branding", "label": "¿Tienes logotipo o creamos propuestas? ¿Qué debe aparecer en la portada?"}]},
+    {"id": "art", "questions": [{"field": "visual.style", "label": "¿Qué idea principal tienes para el estilo artístico? Te mostraremos prototipos para elegir o ajustar."}, {"field": "voice", "label": "¿Qué voz, idioma y tono quieres? ¿Habrá música?"}, {"field": "branding", "label": "¿Tienes logotipo o creamos propuestas? ¿Qué debe aparecer en la portada?"}]},
     {"id": "operation", "questions": [{"field": "platforms", "label": "¿Cuáles son las cuentas exactas de YouTube y TikTok?"}, {"field": "release.mode", "label": "¿Publicamos al superar QA o prefieres revisar cada vídeo?"}, {"field": "budget", "label": "¿Qué presupuesto, horarios del PC y hora de publicación tiene el canal?"}]}
   ],
   "activation_checklist": ["sources_and_rights", "approved_visual_bible", "approved_voice", "logo_and_youtube_banner", "exact_platform_accounts", "release_policy", "passed_end_to_end_canary"]

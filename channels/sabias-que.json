@@ -2,7 +2,7 @@
   "schema_version": 1,
   "id": "sabias-que",
   "name": "¿Sabías que?",
-  "aliases": ["¿Sabias que?"],
+  "aliases": ["¿Sabias que?", "¿Sábias qué...?"],
   "lifecycle": "discovery",
   "language": "es-ES",
   "theme": "Curiosidades verificables",
@@ -10,11 +10,32 @@
   "sources": [{"id": "doval-enciclopedia-curiosidades-1994", "title": "Enciclopedia de las curiosidades: El libro de los hechos insólitos", "author": "Gregorio Doval", "kind": "local_pdf", "locator_required": true, "redistribute": false}],
   "editorial_policy": "separate_claim_source_evidence_script_adaptation_on_screen_text",
   "fact_check_required": true,
-  "visual": {"style": "Cartoon colorido; biblia visual pendiente", "approved": false, "profile": "natural-variable-v1"},
+  "visual": {
+    "style": "Cómic plano 2D con animaciones muy sencillas",
+    "approved": true,
+    "approval_scope": "visual_direction_and_selected_style_frame",
+    "selected_prototype": "c-comic-plano",
+    "visual_bible": "docs/visual-bibles/sabias-que-comic-plano-v01.md",
+    "production_animation_qualified": false,
+    "direction_confirmed_by_user": true,
+    "selection_workflow": "idea_principal -> prototipos_comparables -> eleccion_usuario -> biblia_visual",
+    "animation": {"complexity": "simple", "techniques": ["traslacion y rotacion de elementos", "poses clave", "parpadeo", "entrada de objetos", "movimiento de camara discreto"], "avoid": ["apariencia 3D", "movimientos complejos innecesarios"]},
+    "profile": "natural-variable-v1",
+    "prototype_status": "selected_by_user",
+    "prototype_selection_on": "2026-09-05"
+  },
   "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "The Patient Teacher, sonrisa vocal y energía efusiva sostenida", "retiming": false},
   "branding": {"status": "logo_approved_banner_pending", "logo_reference": "sabias-que-logo-neon-black-v04", "palette": ["hot pink", "lime green", "black"]},
   "platforms": {
-    "youtube": {"enabled": true, "account": null, "handle": null},
+    "youtube": {
+      "enabled": true,
+      "account": "@sabias-quecuriosidad",
+      "handle": "@sabias-quecuriosidad",
+      "name": "¿Sábias qué...?",
+      "url": "https://www.youtube.com/@sabias-quecuriosidad",
+      "channel_id": null,
+      "verification_status": "user_supplied_pending_session_verification"
+    },
     "tiktok": {"enabled": true, "account": null, "handle": null}
   },
   "release": {"mode": "awaiting_user_policy", "language_authorized": "es-ES", "ai_disclosure": true},

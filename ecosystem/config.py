@@ -58,6 +58,8 @@ def readiness(channel: dict, local: dict, settings: dict) -> list[str]:
         blockers.append("Canal pausado")
     if not channel["visual"].get("approved"):
         blockers.append("Falta aprobar la biblia visual")
+    if channel["visual"].get("production_animation_qualified") is False:
+        blockers.append("Estilo elegido; falta validar la animación de producción")
     if not channel["voice"].get("approved") or not channel["voice"].get("id"):
         blockers.append("Falta fijar la voz")
     if not channel.get("audience"):
@@ -68,6 +70,8 @@ def readiness(channel: dict, local: dict, settings: dict) -> list[str]:
     for name, data in enabled:
         if name not in {"youtube", "tiktok"} or not data.get("account"):
             blockers.append(f"Falta la cuenta exacta de {name}")
+        elif data.get("verification_status") and data["verification_status"] != "verified":
+            blockers.append(f"Cuenta de {name} registrada; falta verificar la identidad de la sesión")
     if channel["release"].get("mode") not in {"automatic_after_qa", "manual_review"}:
         blockers.append("Falta fijar la política de publicación")
     if not channel["migration"].get("legacy_writer_reconciled"):
@@ -81,6 +85,8 @@ def readiness(channel: dict, local: dict, settings: dict) -> list[str]:
             blockers.append(f"Fuente local no disponible: {source['id']}")
     if not machine.get("provider_profile"):
         blockers.append("Falta vincular el perfil exclusivo del proveedor visual")
+    elif machine.get("provider_identity", {}).get("status") not in {None, "verified"}:
+        blockers.append("Correo de Vibes asignado; falta verificar la sesión del proveedor")
     if not settings.get("automatic_execution_enabled"):
         blockers.append("Ejecución central pendiente de activación tras la migración")
     return blockers

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "channel_id": "sabias-que",
+  "route": "built-in image_gen",
+  "created_on": "2026-09-05",
+  "use_case": "illustration-story",
+  "purpose": "Comparación de dirección artística; no representa afirmaciones del libro",
+  "selected_by_user": "c-comic-plano",
+  "visual_reference_approved": true,
+  "production_animation_qualified": false,
+  "variants": [
+    {
+      "id": "a-linea-limpia",
+      "title": "A — Cartoon de línea limpia",
+      "prompt": "Use case: illustration-story.\nAsset type: one vertical 9:16 style frame for a Spanish curiosity Shorts channel, clearly readable on a phone.\nPrimary request: propose an appealing cartoon 2D art direction designed for very simple local animation, suitable for a broad adult and teenage audience.\nScene: a friendly curious pink octopus on a simple sea floor examining a lime-green spiral shell through a magnifying glass. This is a neutral visual style test, not a factual claim. Restrained underwater background, two simple seaweed silhouettes and a few bubbles. One character, one shell, one magnifying glass. Simple, legible shapes with parts that could move independently.\nComposition: full illustration, not a poster or storyboard sheet. Central subject in middle area with generous uncluttered top and bottom space for later captions. Refined graphic design and expressive curious eyes.\nColor palette: brand accents hot pink, lime green, black, with warm ivory and a restrained dark teal background. Strong contrast, use lime sparingly. Absolutely flat 2D.\nText: none. No labels, no watermark, no logo, no typography.\nAvoid: 3D rendering, photorealism, glossy gradients, complex lighting, excessive tiny detail, babyish nursery style, human figures, extra characters, comic speech balloons.\nStyle/medium: exceptionally polished flat digital cartoon. Bold consistent black outlines, smooth rounded contours, large solid color fills, very expressive clean face, minimal flat shadow shapes. Controlled cheerful energy, modern animated explainer aesthetic. Distinct separated limbs and objects, easy to animate by moving and rotating simple shapes.",
+      "local_asset": "media/style-prototypes/sabias-que/v01/a-linea-limpia.png"
+    },
+    {
+      "id": "b-recortes-planos",
+      "title": "B — Recortes de papel en 2D",
+      "prompt": "Use case: illustration-story.\nAsset type: one vertical 9:16 style frame for a Spanish curiosity Shorts channel, clearly readable on a phone.\nPrimary request: propose an appealing cartoon 2D art direction designed for very simple local animation, suitable for a broad adult and teenage audience.\nScene: a friendly curious pink octopus on a simple sea floor examining a lime-green spiral shell through a magnifying glass. This is a neutral visual style test, not a factual claim. Restrained underwater background, two simple seaweed silhouettes and a few bubbles. One character, one shell, one magnifying glass. Simple, legible shapes with parts that could move independently.\nComposition: full illustration, not a poster or storyboard sheet. Central subject in middle area with generous uncluttered top and bottom space for later captions. Refined graphic design and expressive curious eyes.\nColor palette: brand accents hot pink, lime green, black, with warm ivory and a restrained dark teal background. Strong contrast, use lime sparingly. Absolutely flat 2D.\nText: none. No labels, no watermark, no logo, no typography.\nAvoid: 3D rendering, photorealism, glossy gradients, complex lighting, excessive tiny detail, babyish nursery style, human figures, extra characters, comic speech balloons.\nStyle/medium: sophisticated flat 2D paper-cut editorial cartoon, irregular cut-paper edges, geometric pieces, subtle printed-paper grain contained within large solid color areas. No black outlines except facial features, no physical paper shadows or 3D depth. Artfully balanced silhouettes and playful asymmetry, simple separate cutout pieces for minimal animation.",
+      "local_asset": "media/style-prototypes/sabias-que/v01/b-recortes-planos.png"
+    },
+    {
+      "id": "c-comic-plano",
+      "title": "C — Cómic plano",
+      "prompt": "Use case: illustration-story.\nAsset type: one vertical 9:16 style frame for a Spanish curiosity Shorts channel, clearly readable on a phone.\nPrimary request: propose an appealing cartoon 2D art direction designed for very simple local animation, suitable for a broad adult and teenage audience.\nScene: a friendly curious pink octopus on a simple sea floor examining a lime-green spiral shell through a magnifying glass. This is a neutral visual style test, not a factual claim. Restrained underwater background, two simple seaweed silhouettes and a few bubbles. One character, one shell, one magnifying glass. Simple, legible shapes with parts that could move independently.\nComposition: full illustration, not a poster or storyboard sheet. Central subject in middle area with generous uncluttered top and bottom space for later captions. Refined graphic design and expressive curious eyes.\nColor palette: brand accents hot pink, lime green, black, with warm ivory and a restrained dark teal background. Strong contrast, use lime sparingly. Absolutely flat 2D.\nText: none. No labels, no watermark, no logo, no typography.\nAvoid: 3D rendering, photorealism, glossy gradients, complex lighting, excessive tiny detail, babyish nursery style, human figures, extra characters, comic speech balloons.\nStyle/medium: energetic flat editorial comic cartoon, angular rhythmic shapes, bold expressive black ink contours with subtle hand-drawn variation. Limited controlled halftone in ONE background area, large clear flat colors everywhere else. An expressive, slightly surprised face. Dynamic but uncluttered composition, one small motion accent near magnifying glass, no panels or speech bubbles, distinctly drawn in 2D.",
+      "local_asset": "media/style-prototypes/sabias-que/v01/c-comic-plano.png"
+    }
+  ]
+}

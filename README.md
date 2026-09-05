@@ -67,8 +67,12 @@ ejecutarse. Un recibo ACCEPT nunca cierra por sí solo una producción.
 1. Terminar y cualificar los adaptadores de generación visual, voz, montaje RIFE
    y publicación, con un reel real por perfil y QA independiente.
 2. Reconciliar la autoridad de los productores anteriores antes del cambio.
-3. Completar las cuentas Vibes/YouTube/TikTok y la biblia visual de ¿Sabías que?.
-   Su voz Kore y su logo neón v04 ya están aprobados.
+3. Verificar la sesión de YouTube `@sabias-quecuriosidad` y la cuenta Vibes
+   asignada localmente, completar TikTok y validar la animación sencilla del
+   cómic plano 2D elegido para ¿Sabías que?. La referencia C y su biblia visual
+   están en `docs/visual-bibles/sabias-que-comic-plano-v01.md`.
+   Su voz Kore y su logo neón v04 ya están aprobados. El correo Vibes permanece
+   exclusivamente en configuración local, fuera de Git.
 4. Fijar presupuesto, disponibilidad del PC, horarios y política de publicación
    de ¿Sabías que?; después activar la cadencia diaria.
 

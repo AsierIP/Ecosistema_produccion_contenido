@@ -32,6 +32,18 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(any("Fuente" in b for b in blockers))
         self.assertFalse(any("fijar la voz" in b for b in blockers))
 
+    def test_assigned_accounts_still_require_session_verification(self):
+        channel = next(c for c in load_channels(self.root) if c["id"] == "sabias-que")
+        local = {"channels": {"sabias-que": {"provider_profile": "SabiasQueVibe", "provider_identity": {"status": "assigned_pending_login_verification"}}}}
+        blockers = readiness(channel, local, {"automatic_execution_enabled": True})
+        self.assertFalse(any("Falta la cuenta exacta de youtube" == b for b in blockers))
+        self.assertTrue(any("youtube registrada" in b for b in blockers))
+        self.assertTrue(any("Correo de Vibes asignado" in b for b in blockers))
+        channel["platforms"]["youtube"]["verification_status"] = "verified"
+        local["channels"]["sabias-que"]["provider_identity"]["status"] = "verified"
+        verified = readiness(channel, local, {"automatic_execution_enabled": True})
+        self.assertFalse(any("youtube registrada" in b or "Correo de Vibes asignado" in b for b in verified))
+
     def test_onboarding_does_not_overwrite_or_activate(self):
         answers = {"name": "Canal nuevo", "theme": "Historia", "sources": [{"id": "book", "title": "Libro"}], "visual_style": "acuarela", "approved": True}
         channel = create_channel(answers, self.root)["channel"]
@@ -39,6 +51,14 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse(channel["visual"]["approved"])
         with self.assertRaises(FileExistsError):
             create_channel(answers, self.root)
+
+    def test_selected_style_does_not_qualify_animation(self):
+        channel = next(c for c in load_channels(self.root) if c["id"] == "sabias-que")
+        channel["visual"].update(approved=True, production_animation_qualified=False)
+        channel["migration"]["canary_passed"] = True
+        blockers = readiness(channel, {}, {"automatic_execution_enabled": True})
+        self.assertIn("Estilo elegido; falta validar la animación de producción", blockers)
+        self.assertNotIn("Falta aprobar la biblia visual", blockers)
 
     def test_cache_invalidates_on_artifact_or_policy_change(self):
         cache = Cache(self.root / "cache")
