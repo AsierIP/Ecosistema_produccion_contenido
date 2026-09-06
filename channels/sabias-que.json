@@ -23,12 +23,12 @@
     "selection_workflow": "idea_principal -> prototipos_comparables -> eleccion_usuario -> biblia_visual",
     "animation": {"complexity": "simple", "continuous_environmental_motion_required": true, "techniques": ["olas", "humo", "hojas y elementos al viento", "traslacion y rotacion de elementos", "poses clave", "parpadeo", "movimiento de camara discreto"], "avoid": ["apariencia 3D", "movimientos complejos innecesarios", "zoom como unico movimiento en escenas de comic"]},
     "documentary_images": {"use_when_relevant": true, "source_and_rights_required": true, "contrast_adjustment": "moderate", "generative_content_alteration": false, "credit_location": "delivery_notes_and_platform_description"},
-    "captions": {"content": "literal_narration_only", "position": "bottom", "single_block": true, "duplicate_headlines": false, "colors": ["#FF009D", "#C8FF00"], "outline": "black"},
+    "captions": {"content": "literal_narration_only", "position": "bottom", "single_block": true, "duplicate_headlines": false, "colors": ["#FF009D", "#C8FF00"], "outline": "black", "background_panel": false},
     "profile": "natural-variable-v1",
     "prototype_status": "selected_by_user",
     "prototype_selection_on": "2026-09-06"
   },
-  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre cálido de Kore original, acento español peninsular y ritmo natural; expresividad intermedia, sin entonación exagerada ni publicitaria", "retiming": false, "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
+  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre cálido de Kore original, acento español peninsular y ritmo natural; expresividad intermedia, sin entonación exagerada ni publicitaria", "retiming": true, "speed_factor": 1.25, "retiming_method": "atempo", "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
   "branding": {"status": "logo_approved_banner_pending", "logo_reference": "sabias-que-logo-neon-black-v04", "palette": ["hot pink", "lime green", "black"]},
   "platforms": {
     "youtube": {
