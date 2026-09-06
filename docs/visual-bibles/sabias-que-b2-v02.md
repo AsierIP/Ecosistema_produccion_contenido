@@ -55,7 +55,7 @@ explicar el dato sin convertirlo en un segundo texto.
 Mantener Kore, su identidad y el timbre cálido original, con acento español
 peninsular. Expresividad intermedia, cercana y natural, sin exageración publicitaria
 ni grandes subidas de tono. Mantener un ritmo fluido parecido al original;
-aplicar después la aceleración a 1,25× autorizada por el usuario, conservando
+aplicar después la aceleración a 1,15× autorizada por el usuario, conservando
 el tono mediante `atempo` y resincronizando subtítulos y resaltado. No acumular
 aceleraciones sobre una voz ya procesada: partir siempre del original. Recortar
 únicamente silencios de los extremos cuando esté comprobado que no corta habla.
@@ -63,3 +63,9 @@ aceleraciones sobre una voz ya procesada: partir siempre del original. Recortar
 La duración queda subordinada al contenido y a la locución. Se permite dejar
 tiempo final para observar un documento, sin repetir la voz. Estas decisiones
 de estilo no equivalen a un PASS audiovisual ni activan publicaciones.
+
+## Cierre fijo
+
+Todos los reels terminan con Kore diciendo exactamente «Dale like y suscríbete
+para saber más cosas». Incluirlo una sola vez al final del guion y en los
+subtítulos literales, con el mismo ritmo 1,15× y sin recuadro de fondo.

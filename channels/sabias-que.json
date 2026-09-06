@@ -28,7 +28,8 @@
     "prototype_status": "selected_by_user",
     "prototype_selection_on": "2026-09-06"
   },
-  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre cálido de Kore original, acento español peninsular y ritmo natural; expresividad intermedia, sin entonación exagerada ni publicitaria", "retiming": true, "speed_factor": 1.25, "retiming_method": "atempo", "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
+  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre cálido de Kore original, acento español peninsular y ritmo natural; expresividad intermedia, sin entonación exagerada ni publicitaria", "retiming": true, "speed_factor": 1.15, "retiming_method": "atempo", "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
+  "closing": {"required": true, "spoken_text": "Dale like y suscríbete para saber más cosas.", "same_voice": true, "include_in_literal_captions": true},
   "branding": {"status": "logo_approved_banner_pending", "logo_reference": "sabias-que-logo-neon-black-v04", "palette": ["hot pink", "lime green", "black"]},
   "platforms": {
     "youtube": {
