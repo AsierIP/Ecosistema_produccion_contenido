@@ -1,0 +1,21 @@
+[Script Info]
+Title: Ejemplo tecnico de composicion 2D
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Caption,Arial,64,&H00FFFFFF,&H00FFFFFF,&H001A1A1A,&H801A1A1A,-1,0,0,0,100,100,0,0,1,4,0,2,100,100,240,1
+Style: Graphic,Arial,72,&H001A1A1A,&H001A1A1A,&H001A1A1A,&H001A1A1A,-1,0,0,0,100,100,0,0,1,0,0,5,80,80,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Comment: 0,0:00:00.00,0:00:06.00,Caption,,0,0,0,,Texto ficticio: adaptar literalmente a la voz aprobada y a sus tiempos reales.
+Dialogue: 9,0:00:00.00,0:00:03.00,Caption,,0,0,0,,Un objeto entra en escena.
+Dialogue: 9,0:00:03.00,0:00:06.00,Caption,,0,0,0,,Después aparece una nueva idea.
+Dialogue: 1,0:00:00.00,0:00:03.00,Graphic,,0,0,0,,{\pos(540,340)}UNA ESCENA
+Dialogue: 1,0:00:03.00,0:00:06.00,Graphic,,0,0,0,,{\pos(540,340)}UNA NUEVA IDEA
+Dialogue: 0,0:00:03.00,0:00:06.00,Graphic,,0,0,0,,{\an7\pos(0,0)\p1\c&H62C5F5&\bord0\shad0}m 440 780 l 640 780 640 980 440 980{\p0}

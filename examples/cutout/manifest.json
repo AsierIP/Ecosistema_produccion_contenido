@@ -1,0 +1,29 @@
+{
+  "fps": 24,
+  "width": 1080,
+  "height": 1920,
+  "work_dir": ".runtime/cutout-demo/work-v01",
+  "evidence_dir": ".runtime/cutout-demo/evidence-v01",
+  "output": ".runtime/cutout-demo/output/master-v01.mp4",
+  "intro": ".runtime/cutout-demo/inputs/intro-approved.mp4",
+  "narration": ".runtime/cutout-demo/inputs/narration-approved.wav",
+  "ass": "examples/cutout/captions.ass",
+  "scenes": [
+    {
+      "frames": 72,
+      "image": ".runtime/cutout-demo/inputs/background.png",
+      "layers": [
+        {
+          "image": ".runtime/cutout-demo/inputs/object-transparent.png",
+          "width": 360,
+          "x": "-360+720*min(t/2,1)",
+          "y": "720+6*sin(t*2)"
+        }
+      ]
+    },
+    {
+      "frames": 72,
+      "color": "0xFFF1D2"
+    }
+  ]
+}

@@ -22,6 +22,10 @@ ni hereda cuentas entre canales.
 - Inspección y decodificación real con FFmpeg, planes de montaje CPU/NVENC.
 - Adaptador RIFE por segmento, probado en la GPU real con conservación de todos
   los fotogramas nativos; aún pendiente de cualificación artística por canal.
+- Montaje local de cómic 2D con capas animadas, gráficos y subtítulos, usando
+  NVENC y la reserva GPU compartida. Primera prueba completa de ¿Sabías que?
+  renderizada y decodificada; revisión editorial y visual aprobada dentro del
+  alcance muestreado, escucha perceptiva pendiente.
 - Panel local con estado de los canales y cuestionario descargable de alta.
 
 ## Inicio
@@ -90,6 +94,8 @@ duración ni se estira la voz.
 - [Operación, recuperación y migración](docs/OPERATIONS.md)
 - [Modelos y costes](docs/MODELS-AND-COST.md)
 - [Pruebas y límites verificados](docs/VALIDATION.md)
+- [Montaje local de cómic 2D](docs/CUTOUT.md)
+- [Contrato y estado de la prueba Religion pro v5](docs/RELIGION-PRO-V5.md)
 
 Código, perfiles públicos, prompts y pruebas están versionados. Los libros,
 medios, pesos, bases de datos, cachés y credenciales quedan fuera de Git.
