@@ -38,8 +38,8 @@
       "handle": "@sabias-quecuriosidad",
       "name": "¿Sábias qué...?",
       "url": "https://www.youtube.com/@sabias-quecuriosidad",
-      "channel_id": null,
-      "verification_status": "user_supplied_pending_session_verification"
+      "channel_id": "UCncJKa6KarbqIYuJoQfjSzQ",
+      "verification_status": "live_session_verified_2026-09-06"
     },
     "tiktok": {"enabled": true, "account": null, "handle": null}
   },
