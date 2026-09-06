@@ -51,9 +51,14 @@ def render(manifest_path: str | Path, *, root: str | Path) -> dict:
     if (wav_params.nchannels, wav_params.sampwidth, wav_params.framerate) != (1, 2, 48000):
         raise ValueError("Narration must be unretimed mono PCM16 at 48000 Hz")
     duration = wav_params.nframes / wav_params.framerate
-    body_frames = math.ceil(duration * fps)
+    narrated_body_frames = math.ceil(duration * fps)
+    end_card_seconds = float(cfg.get('end_card_seconds', 0))
+    if not 0 <= end_card_seconds <= 5:
+        raise ValueError('End card must be between zero and five seconds')
+    end_card_frames = round(end_card_seconds * fps)
+    body_frames = narrated_body_frames + end_card_frames
     if sum(scene["frames"] for scene in cfg["scenes"]) != body_frames:
-        raise ValueError("Scene frames must equal the narration duration rounded to one frame")
+        raise ValueError("Scene frames must equal the narration frames plus the explicit end card")
     intro_probe = probe(intro, tools["ffprobe"])
     if not intro_probe["ok"] or not decode(intro, tools["ffmpeg"])["ok"]:
         raise ValueError("Intro is not fully decodable")
@@ -67,7 +72,20 @@ def render(manifest_path: str | Path, *, root: str | Path) -> dict:
         frames = scene["frames"]
         if not isinstance(frames, int) or frames < 1:
             raise ValueError("Every scene must have a positive integer frame count")
-        if scene.get("image"):
+        start_frame = 0
+        if scene.get('video'):
+            p = Path(scene['video']).resolve(strict=True)
+            source_hashes[str(p)] = file_hash(p)
+            info = probe(p, tools['ffprobe'])
+            streams = [s for s in info.get('streams', []) if s['codec_type']=='video']
+            start_frame = scene.get('in_frame', 0)
+            if not isinstance(start_frame, int) or start_frame < 0:
+                raise ValueError('Video in_frame must be a nonnegative integer')
+            if not info['ok'] or not streams or streams[0].get('avg_frame_rate') != '24/1' or int(streams[0].get('nb_frames', 0)) < start_frame + frames:
+                raise ValueError('Scene requires enough existing video frames at 24 fps; no looping')
+            argv += ['-i', str(p)]
+            bg_filter = scene.get('background_filter', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}')
+        elif scene.get("image"):
             p = Path(scene["image"]).resolve(strict=True)
             source_hashes[str(p)] = file_hash(p)
             argv += ["-loop", "1", "-framerate", str(fps), "-i", str(p)]
@@ -76,7 +94,7 @@ def render(manifest_path: str | Path, *, root: str | Path) -> dict:
             argv += ["-f", "lavfi", "-i", f"color=c={scene.get('color', '0xFFF1D2')}:s={width}x{height}:r={fps}"]
             bg_filter = "null"
         current = f"scene{index}base"
-        graph.append(f"[{input_index}:v]{bg_filter},trim=end_frame={frames},setpts=PTS-STARTPTS,setsar=1,format=yuv420p[{current}]")
+        graph.append(f"[{input_index}:v]trim=start_frame={start_frame}:end_frame={start_frame+frames},setpts=PTS-STARTPTS,{bg_filter},setsar=1,format=yuv420p[{current}]")
         input_index += 1
         for layer_index, layer in enumerate(scene.get("layers", [])):
             p = Path(layer["image"]).resolve(strict=True)
@@ -150,7 +168,8 @@ def render(manifest_path: str | Path, *, root: str | Path) -> dict:
                "body_frames": body_frames, "intro_frames": 36, "intro_pixels_preserved": True, "narration_pcm_samples_preserved": True,
                "every_frame_pts_checked": True, "video_start_seconds": 0,
                "narration_offset_samples": 72000, "narration_samples": wav_params.nframes, "narration_duration_seconds": duration,
-               "audio_speed_factor": 1.0, "pitch_shift": False, "audio_delivery_codec": "aac", "end_visual_rounding_seconds": body_frames / fps - duration,
+               "audio_speed_factor": 1.0, "pitch_shift": False, "audio_delivery_codec": "aac", "end_visual_rounding_seconds": narrated_body_frames / fps - duration,
+               "end_card_frames": end_card_frames, "end_card_audio_policy": "no additional speech or voice retiming",
                "render_seconds": render_seconds, "encoder": "h264_nvenc", "gpu_lease": True, "source_sha256": source_hashes,
                "full_decode": result_decode, "probe": result_probe, "independent_editorial_qa": "PENDING", "independent_audiovisual_qa": "PENDING",
                "manifest": str(manifest_path), "production_qualified": False}

@@ -54,6 +54,7 @@ GPU. Por eso los comandos anteriores se ejecutan desde la raíz del proyecto.
 | `evidence_dir` | Carpeta local sin un `technical-qa.json` anterior. Puede contener el manifiesto y las entradas de revisión. |
 | `output` | MP4 nuevo; no puede coincidir con `body.mp4` ni `intro-video.mp4` de la carpeta de trabajo. |
 | `scenes` | Lista ordenada de escenas, cada una con un número entero positivo de `frames`. |
+| `end_card_seconds` | Observación final opcional de 0 a 5 segundos. Amplía el vídeo, sin repetir ni estirar la voz. Predeterminado: 0. |
 
 Los campos editoriales añadidos al JSON no se convierten en gates: el adaptador
 no interpreta un título, una lista de fuentes o una declaración de permiso
@@ -76,10 +77,17 @@ Las imágenes fijas permanecen visibles durante los fotogramas asignados y sus
 capas pueden moverse. Este contrato de ilustración 2D no cambia las reglas de
 fuentes nativas o RIFE de otros perfiles. El adaptador no usa RIFE.
 
+Una escena también puede aportar `video` e `in_frame` (entero, predeterminado 0).
+Debe existir suficiente metraje a 24 fps para el tramo: el adaptador recorta el
+intervalo indicado sin hacer bucles y conserva el hash de ese vídeo. Permite
+utilizar la animación local continua de [ambient](AMBIENT.md). Los tiempos de
+`background_filter` empiezan en cero en cada escena después del recorte.
+
 ## Duración, audio y subtítulos
 
 Si la narración contiene `N` muestras a 48 000 Hz, el cuerpo debe sumar
-`ceil(N × 24 / 48000)` fotogramas. El total de vídeo es ese número más 36.
+`ceil(N × 24 / 48000)` fotogramas, más `round(end_card_seconds × 24)` cuando
+se solicita una observación final. El total de vídeo es ese número más 36.
 Se redondea únicamente el final visual, menos de un fotograma; la narración
 conserva todas sus muestras y su duración.
 

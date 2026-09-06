@@ -11,20 +11,22 @@
   "editorial_policy": "separate_claim_source_evidence_script_adaptation_on_screen_text",
   "fact_check_required": true,
   "visual": {
-    "style": "Cómic plano 2D con animaciones muy sencillas",
+    "style": "Cartoon 2D exagerado B2; colores propios de cada elemento, eléctricos y contrastados",
     "approved": true,
     "approval_scope": "visual_direction_and_selected_style_frame",
-    "selected_prototype": "c-comic-plano",
-    "visual_bible": "docs/visual-bibles/sabias-que-comic-plano-v01.md",
+    "selected_prototype": "b2-electrico-intenso",
+    "visual_bible": "docs/visual-bibles/sabias-que-b2-v02.md",
     "production_animation_qualified": false,
     "direction_confirmed_by_user": true,
     "selection_workflow": "idea_principal -> prototipos_comparables -> eleccion_usuario -> biblia_visual",
-    "animation": {"complexity": "simple", "techniques": ["traslacion y rotacion de elementos", "poses clave", "parpadeo", "entrada de objetos", "movimiento de camara discreto"], "avoid": ["apariencia 3D", "movimientos complejos innecesarios"]},
+    "animation": {"complexity": "simple", "continuous_environmental_motion_required": true, "techniques": ["olas", "humo", "hojas y elementos al viento", "traslacion y rotacion de elementos", "poses clave", "parpadeo", "movimiento de camara discreto"], "avoid": ["apariencia 3D", "movimientos complejos innecesarios", "zoom como unico movimiento en escenas de comic"]},
+    "documentary_images": {"use_when_relevant": true, "source_and_rights_required": true, "contrast_adjustment": "moderate", "generative_content_alteration": false, "credit_location": "delivery_notes_and_platform_description"},
+    "captions": {"content": "literal_narration_only", "position": "bottom", "single_block": true, "duplicate_headlines": false, "colors": ["#FF009D", "#C8FF00"], "outline": "black"},
     "profile": "natural-variable-v1",
     "prototype_status": "selected_by_user",
-    "prototype_selection_on": "2026-09-05"
+    "prototype_selection_on": "2026-09-06"
   },
-  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "The Patient Teacher, sonrisa vocal y energía efusiva sostenida", "retiming": false},
+  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre Kore; ritmo natural algo más rápido e interpretación más expresiva, sorprendida y efusiva, sin gritar", "retiming": false, "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
   "branding": {"status": "logo_approved_banner_pending", "logo_reference": "sabias-que-logo-neon-black-v04", "palette": ["hot pink", "lime green", "black"]},
   "platforms": {
     "youtube": {

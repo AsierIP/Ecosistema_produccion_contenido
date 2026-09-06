@@ -15,6 +15,13 @@ una escena animada de producción y un reel completo con voz y subtítulos.
 
 ## Lenguaje visual
 
+Revisión solicitada el 6 de septiembre de 2026: el usuario elige **B · Cartoon
+exagerado** de la ronda v02 como nueva base de dibujo. Pide colores reconocibles
+para cada elemento, con saturación y contraste eléctricos. No imponer rosa y
+verde a toda la escena. Esta dirección sustituye la restricción de paleta que
+aparece en la descripción histórica inferior. La ronda v03 compara tres
+tratamientos de color; ninguno está aprobado todavía. El logotipo se conserva.
+
 Ilustración 2D de cómic, contornos negros expresivos con ligera variación,
 formas grandes y siluetas claras. Colores planos, sombreado mínimo y una zona
 discreta de trama de puntos cuando ayude a la composición. Expresiones legibles
