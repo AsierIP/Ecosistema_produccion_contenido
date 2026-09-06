@@ -18,6 +18,7 @@ Ejemplo de manifiesto local:
   "output": ".runtime/work/ambient-v01.mp4",
   "evidence": ".runtime/work/ambient-v01.json",
   "frames": 240,
+  "protected_rects": [[0,0,1,0.60]],
   "regions": [
     {"id":"water","rect":[0,0.65,1,1],"feather":0.05,"dx":12,"dy":4,"period":3,"spatial_y":40,"spatial_x":8}
   ]
@@ -31,6 +32,14 @@ segundos. Los términos espaciales desplazan la fase de la onda dentro de la
 región. Los manifiestos son instrucciones locales revisadas, no entradas remotas
 arbitrarias. Las regiones deben evitar objetos rígidos y caras; revisar su efecto
 en el vídeo real. No aplicar esta técnica a fotografías documentales.
+
+`protected_rects` contiene cajas normalizadas de objetos rígidos: prevalecen sobre
+las regiones móviles. Los píxeles protegidos y todos los exteriores a las máscaras
+se copian directamente del RGB original, sin remuestreo. En cada fotograma se
+comprueba diferencia máxima cero antes de codificar, registrada como
+`protected_rgb_max_error_before_encoding`. La compresión con pérdidas puede variar
+píxeles decodificados; este contrato comprueba ausencia de deformación previa.
+No sustituye revisar que una máscara de humo no incluya parte de una chimenea.
 
 La salida y su evidencia deben ser nuevas. El recibo registra GPU, uso del lease,
 hashes, regiones, duración y decodificación; no declara QA artístico independiente.

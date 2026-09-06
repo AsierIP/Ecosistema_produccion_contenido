@@ -47,6 +47,13 @@ def render(manifest_path, root):
         src = torch.from_numpy(a).to('cuda', dtype=torch.float32).permute(2,0,1).unsqueeze(0) / 255
         yy, xx = torch.meshgrid(torch.linspace(0,1,height,device='cuda'), torch.linspace(0,1,width,device='cuda'), indexing='ij')
         base = torch.stack((xx*2-1, yy*2-1), dim=-1)
+        protected = torch.zeros_like(xx, dtype=torch.bool)
+        for bounds in cfg.get('protected_rects', []):
+            x0,y0,x1,y1 = bounds
+            if not (0 <= x0 < x1 <= 1 and 0 <= y0 < y1 <= 1):
+                raise ValueError('Invalid protected object rectangle')
+            protected |= (xx>=x0)&(xx<=x1)&(yy>=y0)&(yy<=y1)
+        active = torch.zeros_like(xx, dtype=torch.bool)
         regions = []
         for region in cfg['regions']:
             x0,y0,x1,y1 = region['rect']
@@ -57,7 +64,12 @@ def render(manifest_path, root):
                 v = torch.clamp(v, 0, 1)
                 return v*v*(3-2*v)
             mask = smooth((xx-x0)/feather)*smooth((x1-xx)/feather)*smooth((yy-y0)/feather)*smooth((y1-yy)/feather)
+            mask = mask.masked_fill(protected, 0)
+            active |= mask>0
             regions.append((region, mask))
+        original_rgb = torch.from_numpy(a).to('cuda')
+        invariant = ~active
+        protected_rgb_max_error = 0
         last_renewal = time.monotonic()
         with log_path.open('x', encoding='utf-8') as log:
             p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=log)
@@ -71,7 +83,15 @@ def render(manifest_path, root):
                             grid[:,:,0] += mask*region.get('dx',0)*torch.sin(phase)*2/(width-1)
                             grid[:,:,1] += mask*region.get('dy',0)*torch.sin(phase*1.13+.7)*2/(height-1)
                         frame = F.grid_sample(src, grid.unsqueeze(0), mode='bilinear', padding_mode='border', align_corners=True)
-                        encoded = (frame[0].permute(1,2,0)*255).clamp(0,255).to(torch.uint8).cpu().numpy()
+                        warped_rgb = (frame[0].permute(1,2,0)*255).clamp(0,255).round().to(torch.uint8)
+                        # Rigid objects and all pixels outside the object masks
+                        # bypass resampling completely, including its rounding.
+                        final_rgb = torch.where(active.unsqueeze(-1), warped_rgb, original_rgb)
+                        delta = (final_rgb[invariant].to(torch.int16)-original_rgb[invariant].to(torch.int16)).abs().max().item() if invariant.any() else 0
+                        protected_rgb_max_error = max(protected_rgb_max_error, int(delta))
+                        if delta:
+                            raise RuntimeError('Animation changed a protected/static source pixel')
+                        encoded = final_rgb.cpu().numpy()
                         p.stdin.write(encoded.tobytes())
                         if time.monotonic()-last_renewal > 20:
                             if not store.renew_lease('gpu', lease['owner'], lease['token'], 120):
@@ -97,6 +117,8 @@ def render(manifest_path, root):
                'source':str(source),'source_sha256':source_hash,'source_modified':False,'output':str(output),
                'sha256':file_hash(output),'frames':frames,'fps':fps,'seconds':frames/fps,
                'render_seconds':time.monotonic()-started,'regions':cfg['regions'],
+               'protected_rects':cfg.get('protected_rects',[]),
+               'static_pixels_verified_every_frame':True,'protected_rgb_max_error_before_encoding':protected_rgb_max_error,
                'motion_scope':'Illustration only; not applied to documentary photographs',
                'full_decode':decoded,'editorial_qa_passed':False}
     evidence.write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')

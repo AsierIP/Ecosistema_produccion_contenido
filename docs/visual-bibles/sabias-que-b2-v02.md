@@ -17,6 +17,13 @@ en fuentes de luz. El logo y la cabecera existentes conservan su identidad.
 
 ## Movimiento
 
+Cambiar de plano cada cinco segundos, incorporando ilustraciones distintas.
+La cabecera de marca conserva su duración propia. Proteger explícitamente barcos,
+chimeneas, edificios y otros objetos rígidos; el humo no debe arrastrar su chimenea.
+Comprobar en cada fotograma que los píxeles protegidos y ajenos a las regiones
+móviles son idénticos al original antes de codificar. Revisar también las máscaras
+en imagen: una comprobación numérica no identifica por sí sola los objetos.
+
 Las escenas de cómic mantienen movimiento ambiental continuo y pertinente:
 olas, humo, hojas, cabello o ropa según el contenido. La cámara es un complemento.
 Utilizar capas o regiones acotadas y suaves, evitando deformar caras, arquitectura
@@ -44,9 +51,10 @@ Fucsia `#FF009D` y lima `#C8FF00`, con contorno negro y contraste legible. El
 resaltado puede seguir la voz dentro del mismo bloque. Los gráficos pueden
 explicar el dato sin convertirlo en un segundo texto.
 
-Mantener Kore, su identidad y timbre. Nueva interpretación algo más rápida,
-expresiva y sorprendida, sin gritar ni sonar infantil. Generar la interpretación
-con ese ritmo; no acelerar ni cambiar el tono del archivo posterior. Recortar
+Mantener Kore, su identidad y el timbre cálido original, con acento español
+peninsular. Expresividad intermedia, cercana y natural, sin exageración publicitaria
+ni grandes subidas de tono. Mantener un ritmo fluido parecido al original;
+no acelerar ni cambiar el tono del archivo posterior. Recortar
 únicamente silencios de los extremos cuando esté comprobado que no corta habla.
 
 La duración queda subordinada al contenido y a la locución. Se permite dejar

@@ -17,6 +17,8 @@
     "selected_prototype": "b2-electrico-intenso",
     "visual_bible": "docs/visual-bibles/sabias-que-b2-v02.md",
     "production_animation_qualified": false,
+    "scene_duration_seconds": 5,
+    "rigid_objects": {"deformation_allowed": false, "protected_regions_required": true, "static_pixels_checked_each_frame": true},
     "direction_confirmed_by_user": true,
     "selection_workflow": "idea_principal -> prototipos_comparables -> eleccion_usuario -> biblia_visual",
     "animation": {"complexity": "simple", "continuous_environmental_motion_required": true, "techniques": ["olas", "humo", "hojas y elementos al viento", "traslacion y rotacion de elementos", "poses clave", "parpadeo", "movimiento de camara discreto"], "avoid": ["apariencia 3D", "movimientos complejos innecesarios", "zoom como unico movimiento en escenas de comic"]},
@@ -26,7 +28,7 @@
     "prototype_status": "selected_by_user",
     "prototype_selection_on": "2026-09-06"
   },
-  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre Kore; ritmo natural algo más rápido e interpretación más expresiva, sorprendida y efusiva, sin gritar", "retiming": false, "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
+  "voice": {"provider": "Google Gemini TTS", "id": "Kore", "locale": "es-ES", "approved": true, "delivery": "Mismo timbre cálido de Kore original, acento español peninsular y ritmo natural; expresividad intermedia, sin entonación exagerada ni publicitaria", "retiming": false, "pitch_shift": false, "delivery_change_authorized_on": "2026-09-06"},
   "branding": {"status": "logo_approved_banner_pending", "logo_reference": "sabias-que-logo-neon-black-v04", "palette": ["hot pink", "lime green", "black"]},
   "platforms": {
     "youtube": {
