@@ -221,6 +221,21 @@ de píxeles. El render tardó 2.407 segundos, sin generar otra imagen ni usar ag
 El contador de fotogramas con cambios detecta planes que no producen movimiento
 visible; no prueba por sí solo que el movimiento tenga sentido narrativo.
 
+El montaje automático reúne voz, ASS y animaciones aceptadas, verifica sus hashes
+y ajusta el audio a PCM mono de 48 kHz sin volver a acelerar ni cambiar el tono.
+Prepara el manifiesto del compositor y encola `cutout` con todas sus dependencias.
+Los errores se aíslan por trabajo. Una fotografía documental declarada requiere
+archivo, hash, fuente y evidencia de licencia; recibe contraste moderado y un
+movimiento de encuadre, sin deformación ambiental. Su inclusión sigue pendiente
+de la revisión de derechos, descripción y fidelidad editorial final.
+
+La prueba real de montaje con los materiales existentes de Tambora produjo
+607 fotogramas (571 de cuerpo y 36 de cabecera), con decodificación completa,
+cabecera preservada y todas las muestras de voz conservadas. Se guardó en una
+carpeta nueva de E:; no reemplazó ni publicó el vídeo anterior. Este resultado
+valida el compositor y la preparación de su manifiesto, no un ciclo diario nuevo
+completo ni la revisión audiovisual independiente.
+
 La voz terminada prepara también `captions` para el canal cómic. Usa el Whisper
 large-v3 ya instalado, con red deshabilitada y CPU para dejar libre la GPU de
 animación. No descarga pesos. Los tiempos observados se comparan con la narración
