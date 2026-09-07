@@ -126,5 +126,20 @@ def advance_batch(root, queue, path):
 
 
 def advance_native_batches(root, queue):
+    for step in queue.list():
+        if step['adapter'] != 'vibes_generate' or step['state'] != 'accepted':
+            continue
+        request = read_json(Path(step['payload']['inputs'][0]['path']))
+        template_ref = request.get('selection_template')
+        if not template_ref:
+            continue
+        if (file_hash(Path(step['payload']['inputs'][0]['path'])) != step['payload']['inputs'][0]['sha256']
+                or file_hash(Path(template_ref['path'])) != template_ref['sha256']):
+            raise ValueError('Native generation handoff changed')
+        template = read_json(Path(template_ref['path']))
+        if template['job_id'] != step['job_id'] or template['channel_id'] != step['channel_id']:
+            raise ValueError('Native handoff belongs to another job')
+        immutable(Path(root) / '.runtime/upro/native-batches' / step['id'] / 'batch.json',
+                  {**template, 'candidates': step['result']['candidates']})
     for path in (Path(root) / '.runtime/upro/native-batches').glob('*/batch.json'):
         advance_batch(Path(root), queue, path)

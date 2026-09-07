@@ -27,7 +27,8 @@ STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y des
                 "cutout": "Montaje del cómic", "ambient": "Animación de escenas",
                 "voice": "Preparación de la voz", "voice_generate": "Generación de la narración",
                 "captions": "Subtítulos sincronizados", "av_review": "Revisión audiovisual automática",
-                "visual": "Creación de imágenes"}
+                "visual": "Creación de imágenes", "vibes_generate": "Generación de clips en Vibes",
+                "segment_review": "Revisión audiovisual del clip", "segment_quality": "Selección independiente del clip"}
 
 
 def now():
@@ -131,7 +132,7 @@ class Controller:
     def connect_provider(self, channel_id):
         from .browser import open_provider_connection
         with self.guard:
-            if any(w['channel'] == channel_id and w['adapter'] in {'visual', 'release'} for w in self.active.values()):
+            if any(w['channel'] == channel_id and w['adapter'] in {'visual', 'release', 'vibes_generate'} for w in self.active.values()):
                 raise ValueError('Espera a que termine la operación del navegador de este canal.')
             key = channel_id + ':provider'
             previous = self.browser_connections.get(key)
