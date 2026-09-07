@@ -313,6 +313,14 @@ class Controller:
                     "execution_notice": self.last_error or "El motor local está disponible. La producción y publicación completas requieren terminar la conexión y validación de las etapas indicadas en cada línea. El panel no consume tokens al actualizarse."}
 
     def last_video(self, channel, steps, intents):
+        public = [i for i in intents if i["state"] == "verified" and i["action"] == "publish"]
+        with Store(self.root / ".runtime/production.sqlite3") as store:
+            public = [i for i in public if store.get_job(i["job_id"])["channel_id"] == channel]
+        for intent in reversed(public):
+            url = intent["evidence"].get("url") or intent["evidence"].get("public_url")
+            if url and urlsplit(url).scheme == "https":
+                return {"title": "Última publicación verificada", "url": url, "local_available": False,
+                        "status": "Publicado y verificado"}
         candidates = [s for s in steps if s["channel_id"] == channel and s["adapter"] == "media_check" and s["state"] == "accepted"]
         if candidates:
             step = candidates[-1]
@@ -320,13 +328,6 @@ class Controller:
             if path.is_file():
                 return {"title": path.stem, "url": "/api/media/" + step["id"], "local_available": True,
                         "status": "Decodificado; revisión editorial y audiovisual pendiente"}
-        public = [i for i in intents if i["state"] == "verified" and i["action"] == "publish"]
-        with Store(self.root / ".runtime/production.sqlite3") as store:
-            public = [i for i in public if store.get_job(i["job_id"])["channel_id"] == channel]
-        for intent in reversed(public):
-            url = intent["evidence"].get("public_url")
-            if url and urlsplit(url).scheme == "https":
-                return {"title": "Última publicación verificada", "url": url, "local_available": False}
         return None
 
     def media(self, step_id):
