@@ -21,7 +21,8 @@ ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient
 ADAPTERS.add('segment_review')
 ADAPTERS.add('segment_quality')
 ADAPTERS.add('vibes_generate')
-GPU_ADAPTERS = {"cutout", "ambient"}
+ADAPTERS.add('native_conform')
+GPU_ADAPTERS = {"cutout", "ambient", "native_conform"}
 
 
 def canary_authorized(root, plan):
@@ -235,6 +236,12 @@ def execute_step(root, step):
             # The controller persists accepted first, then resumes this handoff
             # on every tick. A crash here must not replay a remote operation.
             result['followup_pending'] = True
+    elif adapter == 'native_conform':
+        from .native_conform import conform
+        if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
+            raise ValueError('Expected one native conform request')
+        result = conform(paths[0], root=root)
+        accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == 'vibes_generate':
         from .vibes import generate
         from .store import Store

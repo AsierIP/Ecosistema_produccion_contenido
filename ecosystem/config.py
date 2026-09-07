@@ -104,6 +104,7 @@ def preparation_readiness(channel, local, adapter):
     allowed.add('segment_review')
     allowed.add('segment_quality')
     allowed.add('vibes_generate')
+    allowed.add('native_conform')
     if adapter not in allowed:
         return ["La etapa no admite ejecución preparatoria"]
     errors = channel_errors(channel)
@@ -119,6 +120,8 @@ def preparation_readiness(channel, local, adapter):
         errors.append('El proveedor visual requiere su adaptador específico')
     if adapter == 'vibes_generate' and (channel['id'] != 'religion' or channel['visual'].get('generation_provider', 'vibes') != 'vibes'):
         errors.append('La generación nativa requiere el perfil Vibes de Religion')
+    if adapter == 'native_conform' and channel['id'] != 'religion':
+        errors.append('La interpolación nativa requiere el perfil de Religion')
     if adapter in {"ambient", "cutout"} and channel["id"] == "religion":
         errors.append("Religion pro v5 requiere su adaptador cinematográfico; no admite montaje cómic")
     if adapter in {'cutout', 'voice', 'voice_generate'} and not channel["voice"].get("approved"):

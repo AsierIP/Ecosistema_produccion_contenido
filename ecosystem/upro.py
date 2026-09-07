@@ -28,7 +28,8 @@ STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y des
                 "voice": "Preparación de la voz", "voice_generate": "Generación de la narración",
                 "captions": "Subtítulos sincronizados", "av_review": "Revisión audiovisual automática",
                 "visual": "Creación de imágenes", "vibes_generate": "Generación de clips en Vibes",
-                "segment_review": "Revisión audiovisual del clip", "segment_quality": "Selección independiente del clip"}
+                "segment_review": "Revisión audiovisual del clip", "segment_quality": "Selección independiente del clip",
+                "native_conform": "Movimiento fluido con la GPU"}
 
 
 def now():
@@ -195,6 +196,8 @@ class Controller:
                 advance_native_batches(self.root, self.queue)
                 from .native_sequence import advance_native_sequences
                 advance_native_sequences(self.root, self.queue)
+                from .native_conform import advance_native_conforms
+                advance_native_conforms(self.root, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
                 advance_production(self.root, self.queue)
