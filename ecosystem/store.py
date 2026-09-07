@@ -372,6 +372,11 @@ class Store:
             if outcome == "not_found":
                 if evidence.get("checked") is not True or not evidence.get("evidence"):
                     raise ValueError("retry requires checked absence and lookup evidence")
+            elif current['platform'] == 'youtube' and current['action'] == 'schedule':
+                from .release import validate_schedule_receipt
+                errors = validate_schedule_receipt(evidence, current)
+                if errors:
+                    raise QualityError('; '.join(errors))
             elif current["action"] == "publish":
                 account = current["payload"].get("expected_account_id")
                 errors = validate_publication_receipt(evidence, current["platform"], current["master_sha256"], account)

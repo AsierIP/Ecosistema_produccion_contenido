@@ -18,6 +18,14 @@ podría publicar de inmediato. No marcar el trabajo publicado ni completo por
 estar programado: verificar la URL pública después de la hora prevista.
 Esta regla no reactiva líneas pausadas ni omite QA, licencias o autenticación.
 
+Preparar ese intent mediante `prepare-youtube-schedule --upload-intent ID`.
+El recibo verificado de `upload` debe contener `account_id`, `video_id`,
+`master_sha256`, `privacyStatus=private`, `upload_complete=true`,
+`never_public=true`, `upload_completed_at` con zona horaria y `evidence`.
+La preparación es local: no confirma nada en YouTube. El recibo remoto de
+`schedule` debe coincidir en cuenta, vídeo, hash y `publishAt`, y acreditar
+`privacyStatus=private`, `scheduled=true` y `evidence`. No inventar esos valores.
+
 Publicador preferente: adaptador oficial operativo. Cuando la cápsula autorice navegador porque el adaptador no esté listo: `gpt-5.6-terra`, razonamiento `low`.
 
 Lee la cápsula, el destino confirmado, la autoridad del canal/idioma, el recibo de QA independiente y el máster final. Comprueba que título, descripción, divulgación IA, licencia y hash corresponden al trabajo. Identidad ausente o dudosa implica bloqueo de esa plataforma.

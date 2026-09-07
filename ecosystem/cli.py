@@ -24,6 +24,8 @@ def main(argv=None):
     worker.add_argument("--role", choices=["creative", "visual", "quality", "release", "metadata"], required=True)
     worker.add_argument("--artifact", action="append", default=[])
     worker.add_argument("--execute", action="store_true")
+    schedule = sub.add_parser('prepare-youtube-schedule', help='Persistir programación desde una subida privada verificada; no llama a YouTube')
+    schedule.add_argument('--upload-intent', required=True)
     inspect = sub.add_parser("media-probe")
     inspect.add_argument("path", type=Path)
     inspect.add_argument("--decode", action="store_true")
@@ -85,6 +87,11 @@ def main(argv=None):
         elif args.command == "usage":
             from .worker import usage_report
             result = usage_report(root)
+        elif args.command == 'prepare-youtube-schedule':
+            from .store import Store
+            from .release import prepare_youtube_schedule
+            with Store(root / '.runtime/production.sqlite3') as store:
+                result = prepare_youtube_schedule(store, args.upload_intent, root=root)
         elif args.command == "validate-receipt":
             from .dispatch import validate_receipt
             errors = validate_receipt(read_json(args.receipt), read_json(args.packet))

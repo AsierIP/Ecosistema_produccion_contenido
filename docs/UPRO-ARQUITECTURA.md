@@ -159,6 +159,14 @@ fecha vencida. Las líneas pausadas siguen pausadas. La regla está implementada
 en la configuración, cálculo y cápsulas; la ejecución remota sigue pendiente
 de la conexión completa del publicador indicada arriba.
 
+`prepare-youtube-schedule --upload-intent ID` persiste el intent desde una subida
+privada verificada y conserva la fecha original tras reiniciar. Rechaza identidad
+distinta, subidas incompletas, resultados inciertos y fechas vencidas. El almacén
+valida la respuesta de programación contra vídeo, cuenta, hash y fecha exactos;
+una programación verificada no completa el trabajo ni acredita visibilidad pública.
+Estas garantías están comprobadas con pruebas de reinicio y fallos simulados;
+todavía falta verificar la ejecución remota completa en YouTube.
+
 ## Consumo y calidad
 
 La coordinación, actualización cada cinco segundos, hashes, montaje y validación
