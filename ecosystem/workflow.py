@@ -96,6 +96,11 @@ def advance_production(root, queue, *, stage_id=None):
             if (result.get('status') != 'TECHNICAL_PASS'
                     or file_hash(Path(result['path'])) != result.get('sha256')):
                 raise ValueError('Voice output lost integrity')
+            if not any(s['adapter'] == 'captions' and step['id'] in s['payload'].get('depends_on', []) for s in steps):
+                caption_request = folder / 'captions-request.json'
+                _persist(caption_request, {'kind': 'comic_captions_v1', 'channel_id': channel['id'],
+                         'transcript': brief['transcript'], 'audio_path': result['path'], 'audio_sha256': result['sha256']})
+                created.append(_register(queue, step, 'captions', caption_request))
             duration = result.get('duration_seconds')
             if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not math.isfinite(duration) or duration <= 0:
                 raise ValueError('Actual narration duration is required')

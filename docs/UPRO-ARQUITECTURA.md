@@ -210,6 +210,16 @@ demás canales. Los recibos antiguos sin ese formato no se migran por inferencia
 Vibes conserva su adaptador pendiente, y falta enlazar las imágenes aceptadas con
 animación, subtítulos y montaje finales.
 
+La voz terminada prepara también `captions` para el canal cómic. Usa el Whisper
+large-v3 ya instalado, con red deshabilitada y CPU para dejar libre la GPU de
+animación. No descarga pesos. Los tiempos observados se comparan con la narración
+canónica; se conservan sus palabras, puntuación y tildes en ASS, abajo, en rosa y
+lima y sin panel negro. Los números enteros reconocidos como cifras (hasta 9999)
+pueden alinearse con sus palabras españolas; sus tiempos internos son subdivisiones
+aproximadas y quedan anotados. Otras discrepancias impiden continuar automáticamente.
+La prueba real del cierre reconoció todas sus palabras y produjo dos bloques de
+subtítulos sin llamadas externas. No acredita revisión audiovisual independiente.
+
 La etapa `voice_generate` está conectada al ejecutor y usa el generador Google
 recuperado en `scripts/providers/`, sin modificar ni ejecutar código del proyecto
 histórico. Envía un solo texto y una sola voz por petición; no reintenta errores.

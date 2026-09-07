@@ -73,7 +73,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_measured_voice_queues_only_needed_scenes_and_restart_is_idempotent(self):
         self.voice_parent()
-        self.assertEqual(len(advance_production(self.root, self.queue)), 3)
+        self.assertEqual(len(advance_production(self.root, self.queue)), 4)
         scenes = [s for s in self.queue.list() if s['adapter'] == 'visual']
         self.assertEqual(len(scenes), 3)
         self.assertEqual(advance_production(self.root, Queue(self.root)), [])
@@ -88,7 +88,7 @@ class WorkflowTests(unittest.TestCase):
         def interrupted(plan):
             nonlocal calls
             calls += 1
-            if calls == 2:
+            if calls == 3:
                 raise OSError('Test interrupted handoff')
             return original(plan)
         with patch.object(self.queue, 'register', side_effect=interrupted):

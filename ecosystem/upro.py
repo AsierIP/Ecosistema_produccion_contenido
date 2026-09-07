@@ -26,6 +26,7 @@ STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y des
                 "quality": "Revisión independiente", "media_check": "Inspección del vídeo",
                 "cutout": "Montaje del cómic", "ambient": "Animación de escenas",
                 "voice": "Preparación de la voz", "voice_generate": "Generación de la narración",
+                "captions": "Subtítulos sincronizados",
                 "visual": "Creación de imágenes"}
 
 

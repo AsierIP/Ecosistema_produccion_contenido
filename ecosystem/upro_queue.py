@@ -18,7 +18,7 @@ import time
 from .cache import file_hash
 from .config import read_json, write_json
 
-ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release"}
+ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release", "captions"}
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -221,6 +221,12 @@ def execute_step(root, step):
                 if next_action == 'verify_public':
                     followup['not_before'] = datetime.fromisoformat(schedule['payload']['publishAt'].replace('Z', '+00:00')).timestamp() + 30
                 result['next_step'] = Queue(root).register(followup)
+    elif adapter == 'captions':
+        from .captions import prepare_captions
+        if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
+            raise ValueError('Los subtítulos deben corresponder al canal de la etapa')
+        result = prepare_captions(paths[0], out, root=root)
+        accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == 'voice_generate':
         from .voice_generate import generate_voice
         from .store import Store
