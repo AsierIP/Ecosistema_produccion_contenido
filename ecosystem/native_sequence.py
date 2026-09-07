@@ -65,6 +65,10 @@ def advance_sequence(root, queue, path):
             continue
         if any(state.get('status') != 'EXHAUSTED' for _, state, _ in relevant):
             return
+        if spec.get('generation_enabled', True) is not True:
+            write_json(path.parent / 'status.json', {'status': 'GENERATION_PAUSED', 'segment_id': segment_id,
+                       'reason': 'Storyboard diagnostic: reuse existing evidence before requesting more media.'})
+            return
         next_batch = max((n for _, _, n in relevant), default=0) + 1
         if next_batch > 3:
             write_json(path.parent / 'status.json', {'status': 'REPLAN_REQUIRED', 'segment_id': segment_id,
