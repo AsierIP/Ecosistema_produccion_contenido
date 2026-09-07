@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "mode": "automatic",
+  "human_review_required": false,
+  "user_approval_required": false,
+  "user_feedback_stage": "after_publication_for_future_productions",
+  "review_method": "automated-audiovisual-review",
+  "technical_checks_required": true,
+  "independent_editorial_review_required": true,
+  "gemini_supplementary_review_authorized": true,
+  "additional_paid_services_authorized": false,
+  "never_claim_human_playback": true
+}

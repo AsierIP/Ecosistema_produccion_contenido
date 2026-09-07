@@ -34,6 +34,9 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     profile_path = root / "config/profiles" / (channel["visual"]["profile"] + ".json")
     profile = read_json(profile_path)
     release_policy = read_json(root / 'config/ecosystem.json').get('youtube_release', {})
+    review_path = root / 'config/review.json'
+    review_policy = read_json(review_path) if review_path.exists() else {}
+    prompt += '\nPolítica vigente de revisión: ' + json.dumps(review_policy, ensure_ascii=False)
     fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt, "youtube_release": release_policy, "receipt_schema": read_json(root / "config/receipt.schema.json"), "runner_limits": models.get("runner_limits", {}), "validator_version": 2}, inputs=refs, model=routing)
     output = root / ".runtime/jobs" / job_id / role / fingerprint[:16]
     packet = {
@@ -41,6 +44,7 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
         "channel": channel, "role": role, "stage": ROLE_STAGES[role], "model": routing,
         "profile": profile, "instructions": prompt, "inputs": refs,
         "youtube_release": release_policy,
+        "review_policy": review_policy,
         "unresolved_intents": [i for i in intents if i["state"] != "verified"],
         "output_directory": str(output), "cache_key": fingerprint,
         "receipt_schema": str(root / "config/receipt.schema.json"),

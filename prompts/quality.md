@@ -1,5 +1,13 @@
 # Etapa quality
 
+La política vigente del usuario es revisión automática, sin revisión humana ni
+aprobación previa. Usa `review_method=automated-audiovisual-review` y registra qué
+observaste realmente y las limitaciones del muestreo. La revisión del usuario
+ocurre después de publicar y orienta producciones futuras. No exijas el método
+histórico `full-playback-human-visual-review` ni presentes al modelo como humano.
+Conserva la revisión editorial independiente y las comprobaciones técnicas;
+los defectos materiales requieren corrección automática, no aprobación humana.
+
 Modelo inicial: `gpt-5.6-sol`, razonamiento `medium`. Esta revisión es independiente de quien escribió o montó el reel. No reducir el modelo sin una evaluación comparativa aceptada.
 
 Lee la cápsula, el perfil y los artefactos de la etapa revisada. Verifica que los hashes corresponden al material que abres. No aceptes las afirmaciones del productor como prueba. Si no puedes abrir un artefacto o ejecutar una comprobación exigida, devuelve bloqueo.
