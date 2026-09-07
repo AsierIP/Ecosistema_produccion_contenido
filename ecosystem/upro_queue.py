@@ -16,7 +16,7 @@ import time
 from .cache import file_hash
 from .config import read_json, write_json
 
-ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual"}
+ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice"}
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -192,6 +192,12 @@ def execute_step(root, step):
         from .worker import run_stage
         result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
         accepted = result.get("status") == "ACCEPTED" or (result.get("status") == "ALREADY_RECORDED" and result.get("run", {}).get("state") == "accepted")
+    elif adapter == 'voice':
+        from .voice import prepare_voice
+        if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
+            raise ValueError('La petición de voz debe corresponder al canal de la etapa')
+        result = prepare_voice(paths[0], out, root=root)
+        accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == "media_check":
         from .media import probe, decode
         if len(paths) != 1:

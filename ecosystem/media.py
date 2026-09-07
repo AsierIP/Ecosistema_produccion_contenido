@@ -110,7 +110,7 @@ def probe(path: str | os.PathLike[str], ffprobe: str = "ffprobe") -> dict[str, A
         return _failure(path, str(exc))
 
 
-def decode(path: str | os.PathLike[str], ffmpeg: str = "ffmpeg") -> dict[str, Any]:
+def decode(path: str | os.PathLike[str], ffmpeg: str = "ffmpeg", *, audio_only=False) -> dict[str, Any]:
     """Decode all video/audio packets to a null sink with strict error handling.
 
     This produces no media files. It cannot prove that a file contains all frames
@@ -120,9 +120,10 @@ def decode(path: str | os.PathLike[str], ffmpeg: str = "ffmpeg") -> dict[str, An
     try:
         source = _input(path)
         tool = _tool(ffmpeg, "ffmpeg")
+        streams = ['-map', '0:a:0'] if audio_only else ['-map', '0:v:0', '-map', '0:a?']
         completed = _execute([tool, "-hide_banner", "-nostdin", "-v", "error", "-xerror",
                               "-err_detect", "explode", "-i", str(source),
-                              "-map", "0:v:0", "-map", "0:a?", "-f", "null", "-"], 1800)
+                              *streams, "-f", "null", "-"], 1800)
         if completed.returncode or completed.stderr.strip():
             return _failure(source, completed.stderr.strip()[:8000] or "ffmpeg decode failed",
                             returncode=completed.returncode, tool=tool)

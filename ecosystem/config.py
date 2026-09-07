@@ -100,7 +100,7 @@ def preparation_readiness(channel, local, adapter):
     Rendering a canary cannot require that same canary to have already passed.
     Identity and destination checks still apply at generation/publication stages.
     """
-    allowed = {"creative", "metadata", "quality", "ambient", "cutout", "media_check", "visual"}
+    allowed = {"creative", "metadata", "quality", "ambient", "cutout", "media_check", "visual", "voice"}
     if adapter not in allowed:
         return ["La etapa no admite ejecución preparatoria"]
     errors = channel_errors(channel)
@@ -116,7 +116,7 @@ def preparation_readiness(channel, local, adapter):
         errors.append('El proveedor visual requiere su adaptador específico')
     if adapter in {"ambient", "cutout"} and channel["id"] == "religion":
         errors.append("Religion pro v5 requiere su adaptador cinematográfico; no admite montaje cómic")
-    if adapter == "cutout" and not channel["voice"].get("approved"):
+    if adapter in {'cutout', 'voice'} and not channel["voice"].get("approved"):
         errors.append("Falta aprobar la voz")
     if adapter in {"creative", "metadata"}:
         machine = local.get("channels", {}).get(channel["id"], {})

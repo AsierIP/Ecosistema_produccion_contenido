@@ -169,6 +169,20 @@ todavía falta verificar la ejecución remota completa en YouTube.
 
 ## Consumo y calidad
 
+La etapa `voice` consume una petición `voice_from_provider_v1` con canal, texto
+canónico y manifiesto Google ligado por hash. Reutiliza únicamente el audio
+original cuya voz, idioma, texto y hash coinciden. Conserva velocidad natural en
+Religion y aplica `atempo=1.15` a Kore en ¿Sabías que?, sin cambiar el tono.
+Una repetición idéntica reutiliza el resultado; un archivo modificado o una
+operación interrumpida se detiene para reconciliar. No genera voces nuevas aún.
+
+Prueba real con el audio original de Tambora: 24.0306 segundos, decodificación
+completa y caché comprobadas; cero llamadas de proveedor y cero tokens de agente
+en esa etapa local. No es una medida del consumo total de un reel. La escucha
+independiente y la revisión de condiciones comerciales siguen pendientes.
+El comprobador de medios admite audio sin debilitar el requisito de pista de
+vídeo que conserva por defecto al validar un máster.
+
 La coordinación, actualización cada cinco segundos, hashes, montaje y validación
 técnica usan código local. Los agentes reciben referencias y contexto específico
 de su etapa; caché y presupuesto de intentos impiden repetir el mismo trabajo.
