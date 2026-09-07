@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 import shutil
+import json
 from .cache import file_hash
 from .config import write_json
 
@@ -43,7 +44,14 @@ def seal_receipt(receipt, packet, *, generated_root=None):
             shutil.copyfile(source, target)
         bound.append({'path': str(target), 'sha256': file_hash(target), 'bytes': target.stat().st_size})
         write_json(output / 'provenance.json', {'generated_path': str(source), 'sha256': file_hash(source)})
-    for name in ('imagegen.intent.json', 'provenance.json'):
+        if receipt.get('decision') == 'ACCEPT':
+            from .motion import validate_motion
+            plans = [c for c in receipt.get('checks', []) if c.get('name') == 'motion_plan' and c.get('passed') is True]
+            if len(plans) != 1:
+                raise ValueError('Accepted comic image requires one inspected motion plan')
+            plan = validate_motion(json.loads(plans[0]['evidence']))
+            write_json(output / 'motion-plan.json', {**plan, 'source_sha256': file_hash(target)}, exclusive=True)
+    for name in ('imagegen.intent.json', 'provenance.json', 'motion-plan.json'):
         path = output / name
         if path.exists():
             bound.append({'path': str(path), 'sha256': file_hash(path), 'bytes': path.stat().st_size})

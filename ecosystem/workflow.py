@@ -36,7 +36,7 @@ def advance_production(root, queue, *, stage_id=None):
     created = []
     if stage_id is None:
         for step in steps:
-            if step['state'] != 'accepted' or step['adapter'] not in {'creative', 'voice_generate'}:
+            if step['state'] != 'accepted' or step['adapter'] not in {'creative', 'voice_generate', 'visual'}:
                 continue
             error_path = root / '.runtime/jobs' / step['job_id'] / 'handoffs' / ('error-' + step['id'] + '.json')
             try:
@@ -51,7 +51,7 @@ def advance_production(root, queue, *, stage_id=None):
     for step in steps:
         if step['id'] != stage_id:
             continue
-        if step['state'] != 'accepted' or step['adapter'] not in {'creative', 'voice_generate'}:
+        if step['state'] != 'accepted' or step['adapter'] not in {'creative', 'voice_generate', 'visual'}:
             continue
         if step['adapter'] == 'creative' and any(step['id'] in s['payload'].get('depends_on', []) for s in steps):
             continue
@@ -82,6 +82,31 @@ def advance_production(root, queue, *, stage_id=None):
                      'brief_path': str(brief_path.resolve()), 'brief_sha256': file_hash(brief_path)}
             _persist(request_path, value)
             created.append(_register(queue, step, 'voice_generate', request_path))
+        elif step['adapter'] == 'visual':
+            if any(s['adapter'] == 'ambient' and step['id'] in s['payload'].get('depends_on', []) for s in steps):
+                continue
+            request = read_json(Path(step['payload']['inputs'][0]['path']))
+            if not request.get('brief_path') or not request.get('frames'):
+                continue
+            from .dispatch import validate_receipt
+            from .motion import validate_motion
+            receipt_path = Path(result.get('receipt_path') or result['run']['receipt_path'])
+            receipt = read_json(receipt_path)
+            if validate_receipt(receipt, read_json(receipt_path.parent / 'packet.json')):
+                raise ValueError('Visual receipt lost integrity')
+            motion_path = next(Path(a['path']) for a in receipt['artifacts'] if Path(a['path']).name == 'motion-plan.json')
+            image = next(Path(a['path']) for a in receipt['artifacts'] if Path(a['path']).suffix.lower() == '.png')
+            motion = validate_motion(read_json(motion_path))
+            if motion['source_sha256'] != file_hash(image):
+                raise ValueError('Motion plan belongs to another image')
+            local = read_json(root / 'local.json')
+            media_root = Path(local['channels'][channel['id']]['media_root']).resolve()
+            request_path = folder / 'animation.json'
+            _persist(request_path, {'image': str(image), 'frames': request['frames'],
+                     'output': str(media_root / step['job_id'] / (request['scene_id'] + '.mp4')),
+                     'evidence': str(folder / 'animation-result.json'),
+                     'protected_rects': motion['protected_rects'], 'regions': motion['regions']})
+            created.append(_register(queue, step, 'ambient', request_path))
         else:
             # Vibes continuity needs its own storyboard adapter; static scenes cannot replace it.
             if channel['visual'].get('generation_provider') != 'imagegen':
@@ -121,6 +146,7 @@ def advance_production(root, queue, *, stage_id=None):
                                    + '\nSin texto dibujado. Reserva una zona inferior tranquila para subtítulos.',
                          'source_basis': {'sources': brief['sources'], 'narrative_purpose': scene['narrative_purpose']},
                          'timeline_index': index, 'timeline_count': count,
+                         'frames': min(120, math.ceil(duration * 24) - index * 120),
                          'brief_path': str(brief_path.resolve()), 'brief_sha256': file_hash(brief_path)}
                 _persist(request_path, value)
                 created.append(_register(queue, step, 'visual', request_path))

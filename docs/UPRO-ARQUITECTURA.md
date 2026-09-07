@@ -210,6 +210,17 @@ demás canales. Los recibos antiguos sin ese formato no se migran por inferencia
 Vibes conserva su adaptador pendiente, y falta enlazar las imágenes aceptadas con
 animación, subtítulos y montaje finales.
 
+Las imágenes nuevas aceptadas deben incluir un `motion_plan` observado sobre la
+imagen: regiones ambientales y rectángulos de protección para estructuras rígidas.
+El ejecutor sella el plan con el hash de la imagen y prepara `ambient` en GPU.
+La duración de cada escena se guarda en fotogramas; la última puede ser menor de
+cinco segundos para terminar con la narración. `local.json` guarda `media_root`
+e `intro_path`, fuera de Git. La prueba real repetida con una ilustración existente
+de Tambora produjo 120 fotogramas en RTX 5070 y superó decodificación y protección
+de píxeles. El render tardó 2.407 segundos, sin generar otra imagen ni usar agentes.
+El contador de fotogramas con cambios detecta planes que no producen movimiento
+visible; no prueba por sí solo que el movimiento tenga sentido narrativo.
+
 La voz terminada prepara también `captions` para el canal cómic. Usa el Whisper
 large-v3 ya instalado, con red deshabilitada y CPU para dejar libre la GPU de
 animación. No descarga pesos. Los tiempos observados se comparan con la narración

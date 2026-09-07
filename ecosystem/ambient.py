@@ -70,6 +70,7 @@ def render(manifest_path, root):
         original_rgb = torch.from_numpy(a).to('cuda')
         invariant = ~active
         protected_rgb_max_error = 0
+        visibly_changed_frames = 0
         last_renewal = time.monotonic()
         with log_path.open('x', encoding='utf-8') as log:
             p = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=log)
@@ -87,6 +88,7 @@ def render(manifest_path, root):
                         # Rigid objects and all pixels outside the object masks
                         # bypass resampling completely, including its rounding.
                         final_rgb = torch.where(active.unsqueeze(-1), warped_rgb, original_rgb)
+                        visibly_changed_frames += int(torch.any(final_rgb != original_rgb).item())
                         delta = (final_rgb[invariant].to(torch.int16)-original_rgb[invariant].to(torch.int16)).abs().max().item() if invariant.any() else 0
                         protected_rgb_max_error = max(protected_rgb_max_error, int(delta))
                         if delta:
@@ -119,7 +121,10 @@ def render(manifest_path, root):
                'render_seconds':time.monotonic()-started,'regions':cfg['regions'],
                'protected_rects':cfg.get('protected_rects',[]),
                'static_pixels_verified_every_frame':True,'protected_rgb_max_error_before_encoding':protected_rgb_max_error,
+               'visibly_changed_frames':visibly_changed_frames,
                'motion_scope':'Illustration only; not applied to documentary photographs',
                'full_decode':decoded,'editorial_qa_passed':False}
+    if visibly_changed_frames < max(1, frames - 1):
+        raise RuntimeError('Environmental motion is not visible throughout the scene')
     evidence.write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding='utf-8')
     return receipt

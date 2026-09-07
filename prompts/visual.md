@@ -1,5 +1,16 @@
 # Etapa visual
 
+Al aceptar una imagen del cómic, incluye una comprobación `motion_plan`, con
+`passed=true` y `evidence` como JSON serializado. Debe contener `scope_evidence`
+describiendo lo que realmente has visto, `protected_rects` para objetos rígidos
+(edificios, chimeneas, caras y otros elementos inmóviles) y `regions` únicamente
+para elementos ambientales que puedan moverse. Usa rectángulos normalizados
+`[x0,y0,x1,y1]`, de 0 a 1. Cada región lleva `rect`, `dx`/`dy` (máximo 10 píxeles),
+`period` de 1 a 10 segundos y opcionalmente `spatial_y` y `feather`.
+No animar toda la imagen ni incluir estructura rígida en una región sin protegerla.
+Si no puedes delimitar movimiento seguro, bloquear. El código guardará el plan;
+no añadas un segundo artefacto a la salida ni fabriques una revisión independiente.
+
 Usa el modelo y razonamiento indicados en la cápsula, incluidas las excepciones
 por canal. Render e inspección técnica: herramientas locales sin LLM.
 
