@@ -121,7 +121,7 @@ class Controller:
             if previous is not None and previous.poll() is None:
                 return
             self.browser_connections[channel_id] = open_connection(channel_id, root=self.root)
-            self.event('Acceso de YouTube abierto en el navegador propio. Cierra esa ventana al terminar.', line_id=channel_id)
+            self.event('Acceso de YouTube abierto. Upro cerrará la ventana al reconocer el canal conectado.', line_id=channel_id)
 
     def save_controls(self):
         temporary = self.control_path.with_suffix(".tmp")
@@ -291,7 +291,9 @@ class Controller:
                     if c['state'] == 'complete' and not running and not blockers:
                         state = 'complete'
                     video = self.last_video(cid, steps, intents)
+                    from .browser import connection_observation
                     lines.append({"id": cid, "name": c["name"], "enabled": enabled,
+                                  "browser_connection": connection_observation(cid, root=self.root),
                                   "state": state, "stage": running["adapter"] if running else state,
                                   "blockers": blockers, "activation_blockers": activation_blockers,
                                   "autonomous_ready": c['ready'], "last_video": video, "progress": None,

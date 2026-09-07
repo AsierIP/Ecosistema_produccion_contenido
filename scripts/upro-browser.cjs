@@ -13,6 +13,15 @@ async function main() {
   const account = channel.platforms.youtube.channel_id || channel.platforms.youtube.account;
   if (!/^UC[A-Za-z0-9_-]{22}$/.test(account)) throw new Error('Missing exact YouTube channel');
   const profile = path.join(root, '.runtime', 'browser-profiles', channelId);
+  const report = path.join(root, '.runtime', 'upro', 'browser-connections', channelId + '.json');
+  const saveStatus = status => {
+    fs.mkdirSync(path.dirname(report), {recursive: true});
+    const temporary = report + '.' + process.pid + '.tmp';
+    fs.writeFileSync(temporary, JSON.stringify({status, channel_id: channelId,
+      expected_account_id: account, observed_at: new Date().toISOString(),
+      publication_performed: false}));
+    fs.renameSync(temporary, report);
+  };
   const context = await chromium.launchPersistentContext(profile, {
     channel: 'chrome', headless: mode !== 'connect', chromiumSandbox: true,
     locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: false,
@@ -29,9 +38,24 @@ async function main() {
     }
     await page.goto('https://studio.youtube.com/channel/' + account, {waitUntil: 'domcontentloaded', timeout: 45000});
     if (mode === 'connect') {
+      saveStatus('AUTH_REQUIRED');
       console.log(JSON.stringify({status: 'CONNECTION_WINDOW_OPEN', channel_id: channelId,
-        instruction: 'Completa el acceso en Chrome y cierra esa ventana al terminar.'}));
-      await new Promise(resolve => context.on('close', resolve));
+        instruction: 'Completa el acceso en Chrome. Upro cerrará la ventana cuando reconozca el canal.'}));
+      let closed = false;
+      context.on('close', () => { closed = true; });
+      while (!closed) {
+        // Read only the destination and visible Studio control; never credentials.
+        const ready = await Promise.all(context.pages().map(async candidate => {
+          const current = new URL(candidate.url());
+          return current.hostname === 'studio.youtube.com' && current.pathname === '/channel/' + account
+            && await candidate.getByRole('button', {name: /^(Crear|Create)$/}).first().isVisible().catch(() => false);
+        }));
+        if (ready.some(Boolean)) {
+          saveStatus('CHANNEL_READY');
+          return;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
       return;
     }
     // Auth redirects are reported, never filled, bypassed or copied from another profile.
@@ -41,7 +65,8 @@ async function main() {
     ]).catch(() => {});
     const current = new URL(page.url());
     const identityMatch = current.hostname === 'studio.youtube.com' && current.pathname === '/channel/' + account;
-    const studioControls = await page.getByRole('button', {name: /Crear|Create/, exact: true}).count();
+    const studioControls = await page.getByRole('button', {name: /^(Crear|Create)$/}).first().isVisible();
+    saveStatus(identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED');
     console.log(JSON.stringify({status: identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED',
       channel_id: channelId, expected_account_id: account,
       authenticated: Boolean(identityMatch && studioControls), publication_performed: false}));

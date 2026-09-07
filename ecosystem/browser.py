@@ -7,6 +7,22 @@ import subprocess
 from .config import ROOT, load_channels
 
 
+def connection_observation(channel_id, *, root=ROOT):
+    """Display the last observation; never authorize a release from this cache."""
+    channel = next((c for c in load_channels(root) if c['id'] == channel_id), None)
+    if channel is None:
+        raise ValueError('Unknown channel')
+    try:
+        value = json.loads((Path(root) / '.runtime/upro/browser-connections' / (channel_id + '.json')).read_text(encoding='utf-8'))
+        platform = channel['platforms']['youtube']
+        if (value.get('channel_id') != channel_id or value.get('expected_account_id') != platform.get('channel_id', platform.get('account'))
+                or value.get('status') not in {'CHANNEL_READY', 'AUTH_REQUIRED'}):
+            return None
+        return {k: value[k] for k in ('status', 'observed_at')}
+    except (OSError, ValueError, KeyError):
+        return None
+
+
 def browser_command(channel_id, mode, *, root=ROOT):
     if channel_id not in {c['id'] for c in load_channels(root)}:
         raise ValueError('Unknown channel')

@@ -211,6 +211,11 @@
       connect.disabled = !status?.csrf_token || mutating;
       connect.title = 'Abrir el navegador propio de este canal para iniciar sesión';
       article.append(connect);
+      if (line.browser_connection) {
+        const message = line.browser_connection.status === 'CHANNEL_READY'
+          ? 'Último acceso al canal comprobado' : 'Pendiente de iniciar sesión en el navegador de Upro';
+        article.append(node('p', 'muted', `${message} · ${dateText(line.browser_connection.observed_at, true)}`));
+      }
     }
 
     const body = node("div", "line-body");
@@ -415,7 +420,7 @@
   $("lines").addEventListener("click", (event) => {
     const connect = event.target.closest('button[data-browser-channel]');
     if (connect && !connect.disabled) {
-      mutate(`/api/browser/${encodeURIComponent(connect.dataset.browserChannel)}`, {}, 'Acceso abierto en Chrome. Completa el inicio de sesión y cierra esa ventana.');
+      mutate(`/api/browser/${encodeURIComponent(connect.dataset.browserChannel)}`, {}, 'Acceso abierto en Chrome. Upro cerrará la ventana cuando reconozca el canal conectado.');
       return;
     }
     const button = event.target.closest("button[data-line-id]");
