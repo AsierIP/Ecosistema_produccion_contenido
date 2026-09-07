@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-from .config import ROOT, load_channels
+from .config import ROOT, load_channels, read_json
 
 
 def connection_observation(channel_id, *, root=ROOT):
@@ -28,10 +28,14 @@ def browser_command(channel_id, mode, *, root=ROOT):
         raise ValueError('Unknown channel')
     if mode not in {'check', 'status', 'connect'}:
         raise ValueError('Unknown browser operation')
-    node = shutil.which('node')
+    local_path = Path(root) / 'local.json'
+    runtime = read_json(local_path).get('browser_runtime', {}) if local_path.exists() else {}
+    node = runtime.get('node') or shutil.which('node')
     if not node:
         raise ValueError('Node runtime unavailable')
-    modules = Path(node).resolve().parent.parent / 'node_modules'
+    if not Path(node).is_file():
+        raise ValueError('Configured Node runtime unavailable')
+    modules = Path(runtime['modules']) if runtime.get('modules') else Path(node).resolve().parent.parent / 'node_modules'
     if not (modules / 'playwright/package.json').is_file():
         raise ValueError('Local Playwright runtime unavailable')
     env = dict(os.environ, NODE_PATH=str(modules))

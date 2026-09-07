@@ -1,11 +1,26 @@
 import tempfile
 from pathlib import Path
 import unittest
-from ecosystem.browser import connection_observation
+from unittest.mock import patch
+from ecosystem.browser import connection_observation, browser_command
 from ecosystem.config import ROOT, read_json, write_json
 
 
 class BrowserObservationTests(unittest.TestCase):
+    def test_explicit_runtime_works_without_codex_path(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_json(root / 'channels/sabias-que.json', read_json(ROOT / 'channels/sabias-que.json'))
+            node = root / 'installed-node.exe'
+            node.write_bytes(b'test fixture, not executed')
+            modules = root / 'modules'
+            write_json(modules / 'playwright/package.json', {})
+            write_json(root / 'local.json', {'browser_runtime': {'node': str(node), 'modules': str(modules)}})
+            with patch('ecosystem.browser.shutil.which', return_value=None):
+                command, env = browser_command('sabias-que', 'status', root=root)
+            self.assertEqual(command[0], str(node))
+            self.assertEqual(env['NODE_PATH'], str(modules))
+
     def test_wrong_identity_and_private_fields_are_not_displayed(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
