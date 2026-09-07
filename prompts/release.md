@@ -1,5 +1,23 @@
 # Etapa release
 
+## Contrato del ejecutor Upro
+
+Si la entrada contiene `youtube_operation_v1`, ejecutar únicamente esa operación.
+Leer `operation.json` en la carpeta de salida: el código local ya ha persistido
+y reservado su intent. No crear otro intent ni realizar otra fase.
+Para `upload`, comprobar la cuenta exacta en Studio, subir el máster declarado,
+aplicar los metadatos declarados y guardar como PRIVADO. No programar ni publicar.
+Registrar `youtube-result.json` con `account_id`, `video_id`, `master_sha256`,
+`privacyStatus=private`, `upload_complete=true`, `never_public=true`,
+`upload_completed_at` real con zona horaria y `evidence` de la verificación.
+Para `schedule`, abrir únicamente el vídeo del intent, confirmar cuenta y estado
+privado y programar el `publishAt` guardado. Registrar cuenta, vídeo, hash,
+`privacyStatus=private`, `publishAt`, `scheduled=true` y evidencia observada.
+Si la fecha ha vencido, bloquear y reconciliar; nunca programar una fecha pasada.
+En ambos casos incluir ese JSON en los artefactos del recibo estructurado.
+Un ACCEPT acredita solamente la operación reservada, nunca publicación pública.
+Estas instrucciones específicas limitan las reglas generales siguientes.
+
 ## YouTube: regla común para todos los canales
 
 La política `youtube_release` de la cápsula prevalece sobre antiguos horarios o

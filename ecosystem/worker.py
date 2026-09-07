@@ -124,11 +124,17 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
     packet = build_packet(job_id, role, artifacts, root)
     if not execute:
         return {k:v for k,v in packet.items() if k != "stdin"}
-    if role not in {"creative", "metadata", "quality", "visual"}:
+    if role not in {"creative", "metadata", "quality", "visual", "release"}:
         return {"status": "BLOCKED", "reason": "La generación remota y publicación requieren un adaptador cualificado; la cápsula está preparada"}
     if not artifacts:
         return {"status": "BLOCKED", "reason": "Faltan entradas concretas: ficha de fuentes, guion aprobado o máster con evidencias según la etapa"}
     unit_id = 'stage'
+    if role == 'release':
+        from .release_worker import release_request
+        try:
+            unit_id = release_request(read_json(Path(packet['packet_path'])))['action']
+        except (ValueError, OSError, KeyError, RuntimeError) as exc:
+            return {'status': 'BLOCKED', 'reason': str(exc), 'agent_started': False}
     if role == 'visual':
         errors = visual_preflight(read_json(Path(packet['packet_path'])))
         if errors:
@@ -186,6 +192,10 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         errors = []
         blockers = []
         try:
+            operation = None
+            if role == 'release':
+                from .release_worker import start_operation
+                operation = start_operation(read_json(Path(packet['packet_path'])), root)
             if role == 'visual':
                 from .visual_worker import prepare_intent
                 prepare_intent(read_json(Path(packet['packet_path'])))
@@ -210,11 +220,17 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
                     if len(pictures) != 1 or pictures[0].read_bytes()[:8] != b'\x89PNG\r\n\x1a\n':
                         errors.append('La etapa visual necesita exactamente una imagen PNG real')
                 if not errors:
+                    if role == 'release' and receipt['decision'] == 'ACCEPT':
+                        from .release_worker import finish_operation
+                        expected_result = (output / 'youtube-result.json').resolve()
+                        if not any(Path(a['path']).resolve() == expected_result for a in receipt['artifacts']):
+                            raise ValueError('Missing declared YouTube operation receipt')
+                        finish_operation(read_json(Path(packet['packet_path'])), root, operation)
                     state = "accepted" if receipt["decision"] == "ACCEPT" else "blocked"
         except subprocess.TimeoutExpired:
             state = "uncertain"
             errors.append("Tiempo máximo excedido; reconciliar los artefactos antes de otro intento")
-        except (OSError, ValueError, KeyError) as exc:
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
             errors.append(str(exc))
         # Parse even partial events on timeout/error before capping retained logs.
         usage = collect_usage(events_path)

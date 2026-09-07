@@ -1,0 +1,90 @@
+"""YouTube browser operations bounded by QA and durable local intents."""
+from pathlib import Path
+import re
+from datetime import datetime, timezone
+
+from .config import read_json, write_json
+from .quality import validate_qa
+from .release import prepare_youtube_schedule
+from .store import Store, QualityError
+
+
+def release_request(packet):
+    refs = {str(Path(r['path']).resolve()): r for r in packet['inputs']}
+    requests = []
+    for path in refs:
+        p = Path(path)
+        if p.suffix == '.json' and p.stat().st_size < 100_000:
+            value = read_json(p)
+            if isinstance(value, dict) and value.get('kind') == 'youtube_operation_v1':
+                requests.append(value)
+    if len(requests) != 1:
+        raise ValueError('Exactly one YouTube operation request is required')
+    request = requests[0]
+    channel = packet['channel']
+    platform = channel['platforms']['youtube']
+    account = platform.get('channel_id', platform.get('account'))
+    if (channel['lifecycle'] == 'paused' or platform.get('enabled') is not True
+            or not isinstance(account, str) or not re.fullmatch(r'UC[A-Za-z0-9_-]{22}', account)
+            or request.get('channel_id') != channel['id'] or request.get('expected_account_id') != account
+            or request.get('action') not in {'upload', 'schedule'}):
+        raise ValueError('Invalid operation, inactive channel or mismatched YouTube identity')
+    policy = packet.get('youtube_release', {})
+    if policy.get('upload_visibility') != 'private' or policy.get('publish_delay_seconds') != 7200:
+        raise ValueError('Unsupported release policy')
+    for key in ('master_path', 'qa_path', 'metadata_path'):
+        path = str(Path(request[key]).resolve())
+        if path not in refs:
+            raise ValueError('Release evidence must be declared in the work order')
+    master = Path(request['master_path'])
+    if master.suffix.lower() != '.mp4':
+        raise ValueError('An MP4 master is required')
+    profile = {**packet['profile'], 'voice_speed_factor': channel['voice'].get('speed_factor', 1.0)}
+    errors = validate_qa(read_json(Path(request['qa_path'])), master, profile)
+    if errors:
+        raise QualityError('; '.join(errors))
+    metadata = read_json(Path(request['metadata_path']))
+    if not all(isinstance(metadata.get(k), str) and metadata[k].strip() for k in ('title', 'description')):
+        raise ValueError('Approved title and description are required')
+    if metadata.get('master_sha256') != refs[str(master.resolve())]['sha256']:
+        raise ValueError('Metadata does not belong to this master')
+    return {**request, 'master_sha256': metadata['master_sha256'], 'metadata': metadata}
+
+
+def start_operation(packet, root):
+    request = release_request(packet)
+    with Store(root / '.runtime/production.sqlite3') as store:
+        if request['action'] == 'upload':
+            intent = store.prepare_intent(packet['job_id'], 'youtube', 'upload', request['master_sha256'], {
+                'expected_account_id': request['expected_account_id'], 'privacyStatus': 'private',
+                'master_path': request['master_path'], 'metadata': request['metadata']})
+        else:
+            upload = store.get_intent(request['upload_intent_id'])
+            if not upload or upload['job_id'] != packet['job_id'] or upload['master_sha256'] != request['master_sha256']:
+                raise ValueError('Upload belongs to another job or master')
+            intent = prepare_youtube_schedule(store, request['upload_intent_id'], root=root)
+            if intent['job_id'] != packet['job_id'] or intent['master_sha256'] != request['master_sha256']:
+                raise ValueError('Schedule belongs to another job or master')
+        if intent['state'] == 'verified':
+            raise ValueError('Operation already verified; reuse it without starting an agent')
+        operation = {**intent, 'only_authorized_action': request['action'],
+                     'result_path': str(Path(packet['output_directory']) / 'youtube-result.json')}
+        write_json(Path(packet['output_directory']) / 'operation.json', operation)
+        return store.start_intent(intent['id'], intent['version'])
+
+
+def finish_operation(packet, root, intent):
+    evidence = read_json(Path(packet['output_directory']) / 'youtube-result.json')
+    if intent['action'] == 'upload':
+        stamp = datetime.fromisoformat(evidence.get('upload_completed_at', '').replace('Z', '+00:00'))
+        if (evidence.get('account_id') != intent['payload']['expected_account_id']
+                or evidence.get('privacyStatus') != 'private' or evidence.get('upload_complete') is not True
+                or evidence.get('never_public') is not True or stamp.tzinfo is None
+                or stamp > datetime.now(timezone.utc)
+                or not re.fullmatch(r'[A-Za-z0-9_-]{11}', str(evidence.get('video_id', '')))):
+            raise QualityError('Private upload receipt lacks exact identity or completion evidence')
+    with Store(root / '.runtime/production.sqlite3') as store:
+        verified = store.reconcile_intent(intent['id'], intent['version'], 'verified', evidence)
+        if intent['action'] == 'upload':
+            prepare_youtube_schedule(store, intent['id'], root=root)
+    return verified

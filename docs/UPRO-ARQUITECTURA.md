@@ -167,6 +167,15 @@ una programación verificada no completa el trabajo ni acredita visibilidad púb
 Estas garantías están comprobadas con pruebas de reinicio y fallos simulados;
 todavía falta verificar la ejecución remota completa en YouTube.
 
+El adaptador `release` admite peticiones `youtube_operation_v1` para `upload`
+y `schedule`, con máster, QA y metadatos declarados por hash. Antes de iniciar
+el agente reserva el intent; una subida verificada prepara y encola la fase de
+programación dependiente de ella. El agente solo puede ejecutar la fase indicada
+en `operation.json`. Las pruebas simulan respuestas privadas, públicas erróneas
+y repetición de intentos: no son evidencia de una subida real. Falta probar ambas
+operaciones con un máster que haya superado la revisión independiente completa,
+y conectar la verificación pública posterior a la fecha programada.
+
 ## Consumo y calidad
 
 La etapa `voice_generate` está conectada al ejecutor y usa el generador Google

@@ -81,8 +81,9 @@ def validate_timeline(timeline, profile=None):
     if profile.get("timeline_mode") and mode != profile["timeline_mode"]:
         errors.append("timeline mode differs from the configured visual profile")
     voice_speed = timeline.get("voice_speed_factor")
-    if not _number(voice_speed, positive=True) or voice_speed != 1.0:
-        errors.append("voice must remain at natural speed (voice_speed_factor=1.0)")
+    expected_voice_speed = profile.get('voice_speed_factor', 1.0)
+    if not _number(voice_speed, positive=True) or voice_speed != expected_voice_speed:
+        errors.append(f"voice must match approved speed (voice_speed_factor={expected_voice_speed})")
     if timeline.get("interpolated_across_cuts") is not False:
         errors.append("interpolation across cuts is forbidden")
     segments = timeline.get("segments")

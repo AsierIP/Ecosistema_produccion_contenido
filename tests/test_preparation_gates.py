@@ -30,7 +30,9 @@ class PreparationGates(unittest.TestCase):
         self.assertEqual(preparation_readiness(self.sq, {}, "cutout"), [])
         religion = next(c for c in load_channels(self.root) if c["id"] == "religion")
         self.assertTrue(preparation_readiness(religion, {}, "cutout"))
-        self.assertTrue(preparation_readiness(self.sq, {}, "release"))
+        # The release adapter now exists. Its worker separately enforces master QA
+        # and reserves a durable operation before allowing any browser action.
+        self.assertEqual(preparation_readiness(self.sq, {}, "release"), [])
 
     def test_canary_needs_matching_local_grant_and_cannot_publish(self):
         from ecosystem.cache import file_hash

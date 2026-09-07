@@ -16,7 +16,7 @@ import time
 from .cache import file_hash
 from .config import read_json, write_json
 
-ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate"}
+ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release"}
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -188,10 +188,27 @@ def execute_step(root, step):
     out = root / ".runtime/upro/results" / step["id"]
     out.mkdir(parents=True, exist_ok=True)
     adapter = plan["adapter"]
-    if adapter in {"creative", "metadata", "quality", "visual"}:
+    if adapter in {"creative", "metadata", "quality", "visual", "release"}:
         from .worker import run_stage
         result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
         accepted = result.get("status") == "ACCEPTED" or (result.get("status") == "ALREADY_RECORDED" and result.get("run", {}).get("state") == "accepted")
+        if adapter == 'release' and accepted:
+            from .release_worker import release_request
+            from .store import Store
+            receipt_path = Path(result.get('receipt_path') or result['run']['receipt_path'])
+            packet = read_json(receipt_path.parent / 'packet.json')
+            request = release_request(packet)
+            if request['action'] == 'upload':
+                with Store(root / '.runtime/production.sqlite3') as store:
+                    upload = next(i for i in store.list_intents(plan['job_id'])
+                                  if i['platform'] == 'youtube' and i['action'] == 'upload' and i['state'] == 'verified')
+                request_path = out / 'schedule-request.json'
+                request.pop('metadata', None)
+                write_json(request_path, {**request, 'action': 'schedule', 'upload_intent_id': upload['id']})
+                inputs = [request_path] + [Path(request[k]) for k in ('master_path', 'qa_path', 'metadata_path')]
+                followup = {**plan, 'inputs': [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in inputs],
+                            'depends_on': [step['id']]}
+                result['next_step'] = Queue(root).register(followup)
     elif adapter == 'voice_generate':
         from .voice_generate import generate_voice
         from .store import Store
