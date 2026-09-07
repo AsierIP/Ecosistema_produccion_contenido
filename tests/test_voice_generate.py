@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from ecosystem.config import ROOT, load_channels, write_json
-from ecosystem.voice_generate import generation_config, free_tier_preflight, generate_voice
+from ecosystem.voice_generate import generation_config, free_tier_preflight, generate_voice, reconcile_saved_audio
 
 
 class VoiceGenerationTests(unittest.TestCase):
@@ -46,6 +46,24 @@ class VoiceGenerationTests(unittest.TestCase):
             write_json(output / 'generation-intent.json', {'state': 'sending'})
             with self.assertRaises(ValueError):
                 generate_voice(request, output, root=ROOT)
+            process.assert_not_called()
+
+    @patch('ecosystem.voice_generate.subprocess.run')
+    def test_recovery_does_not_retry_an_ambiguous_provider_failure(self, process):
+        from ecosystem.cache import file_hash
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            request = root / 'request.json'
+            write_json(request, self.request)
+            output = root / 'out'
+            write_json(output / 'generation-intent.json', {'state': 'sending',
+                'request_sha256': file_hash(request), 'voice': self.channel['voice']})
+            write_json(output / 'provider-config.json', generation_config(self.request, self.channel))
+            write_json(output / 'provider/batch/manifest.json', {'run_status': 'failed', 'samples': [],
+                'comparison': {'transcript': self.request['transcript']},
+                'failure': {'message': 'Network timeout: outcome unknown'}})
+            with self.assertRaises(ValueError):
+                reconcile_saved_audio(request, output, root=ROOT)
             process.assert_not_called()
 
     @unittest.skipUnless(__import__('os').name == 'nt', 'Windows provider validation')

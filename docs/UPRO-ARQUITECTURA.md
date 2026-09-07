@@ -193,8 +193,14 @@ histórico. Envía un solo texto y una sola voz por petición; no reintenta erro
 Antes de enviar persiste un intent y ocupa el recurso remoto. Tras una respuesta
 válida encadena `voice` para comprobar procedencia y aplicar el ritmo aprobado.
 La configuración real del script pasó `ValidateOnly` en Windows, sin lectura de
-credenciales ni llamada de red. Todavía no se ha probado una generación nueva
-mediante esta conexión.
+credenciales ni llamada de red. Una prueba posterior realizó una única petición
+real de Kore para el cierre aprobado del canal. Google guardó el WAV, pero faltó
+el cmdlet `Get-FileHash` en ese proceso. Se sustituyó por SHA-256 de .NET y se
+recuperó el audio ya devuelto, conservando el manifiesto fallido. Resultado final
+2.9831 segundos a ×1,15, decodificación completa y reutilización comprobadas.
+La recuperación no volvió a llamar a Google y no acredita escucha independiente.
+`reconcile_saved_audio` solo admite este fallo concreto posterior al guardado del
+WAV; otros fallos o respuestas ambiguas continúan bloqueados.
 
 Con presupuesto adicional cero, necesita evidencia reciente (máximo 24 horas) en
 `.runtime/providers/google-tts-free-tier.json`: modelo, fecha de comprobación,
@@ -203,6 +209,9 @@ ruta/hash del registro DPAPI configurado y evidencia de la comprobación. No
 contiene la clave. Ver proyectos gratuitos en Studio no prueba por sí solo ese
 vínculo; no inventar `credential_project_verified=true`. Falta automatizar esta
 comprobación para que su caducidad no requiera intervención en producción diaria.
+En la prueba real se contrastó la referencia enmascarada única de la tabla de
+claves y su nivel gratuito con el sufijo de la credencial en memoria protegida;
+solo se devolvió coincidencia y hash del registro cifrado, nunca la clave.
 
 La etapa `voice` consume una petición `voice_from_provider_v1` con canal, texto
 canónico y manifiesto Google ligado por hash. Reutiliza únicamente el audio

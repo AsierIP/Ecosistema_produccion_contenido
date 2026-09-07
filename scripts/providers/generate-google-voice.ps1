@@ -598,7 +598,15 @@ try {
             $mimeType = [string](Get-PropertyValue -Object $audioBlock -Name "mimeType")
         }
         $interactionId = [string](Get-PropertyValue -Object $result.Response -Name "id")
-        $hash = (Get-FileHash -LiteralPath $finalPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $fileHasher = [Security.Cryptography.SHA256]::Create()
+        $hashStream = [IO.File]::OpenRead($finalPath)
+        try {
+            $hash = ([BitConverter]::ToString($fileHasher.ComputeHash($hashStream))).Replace('-', '').ToLowerInvariant()
+        }
+        finally {
+            $hashStream.Dispose()
+            $fileHasher.Dispose()
+        }
 
         $manifest.samples += [ordered]@{
             order = [int]$voice.order
