@@ -187,6 +187,16 @@ real de todo el ciclo. El panel distingue la espera programada de una cola norma
 
 ## Consumo y calidad
 
+En cada arranque o ciclo, `seed_ready_jobs` detecta trabajos diarios habilitados
+sin etapas y prepara su cápsula de guion. Indexa las fuentes locales con caché,
+reserva hasta tres extractos por fuente y guarda el paquete bajo el trabajo.
+Una reapertura conserva esa selección; un cambio en la fuente reservada exige
+reconciliación. Las líneas no habilitadas o sin readiness no arrancan.
+Las reservas evitan repetir localizadores, no prueban variedad semántica ni
+elegibilidad editorial: el agente debe rechazar índices, portadas y pasajes sin
+contexto suficiente. Falta conectar automáticamente todos los artefactos del
+guion con sus escenas y el montaje; este arranque no acredita un reel completo.
+
 La etapa `voice_generate` está conectada al ejecutor y usa el generador Google
 recuperado en `scripts/providers/`, sin modificar ni ejecutar código del proyecto
 histórico. Envía un solo texto y una sola voz por petición; no reintenta errores.

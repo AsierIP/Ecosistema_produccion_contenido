@@ -99,3 +99,34 @@ CREATE VIRTUAL TABLE IF NOT EXISTS passages USING fts5(source_id UNINDEXED, loca
         safe_query = " OR ".join('"' + term + '"' for term in terms[:15])
         with closing(self._connect()) as con:
             return [dict(row) for row in con.execute("SELECT source_id,locator,text FROM passages WHERE passages MATCH ? AND source_id=? ORDER BY rank LIMIT ?", (safe_query, source_id, limit))]
+
+    def reserve(self, source_id, channel_id, job_id, limit=3):
+        """Persist bounded editorial candidates; selection is not factual approval."""
+        if not 1 <= limit <= 5:
+            raise ValueError('Candidate limit must be between 1 and 5')
+        with closing(self._connect()) as con:
+            con.execute('BEGIN IMMEDIATE')
+            con.execute('CREATE TABLE IF NOT EXISTS editorial_selections '
+                        '(job_id TEXT,source_id TEXT,channel_id TEXT,source_sha256 TEXT,passages TEXT,PRIMARY KEY(job_id,source_id))')
+            source = con.execute('SELECT sha256 FROM sources WHERE id=?', (source_id,)).fetchone()
+            if not source:
+                raise ValueError('Source must be indexed before selecting candidates')
+            previous = con.execute('SELECT * FROM editorial_selections WHERE job_id=? AND source_id=?', (job_id, source_id)).fetchone()
+            if previous:
+                if previous['source_sha256'] != source['sha256'] or previous['channel_id'] != channel_id:
+                    raise ValueError('Reserved source changed; reconcile the editorial work')
+                return json.loads(previous['passages'])
+            used = {item['locator'] for row in con.execute('SELECT passages FROM editorial_selections WHERE source_id=? AND channel_id=?',
+                                                          (source_id, channel_id)) for item in json.loads(row['passages'])}
+            selected = []
+            for row in con.execute('SELECT source_id,locator,text FROM passages WHERE source_id=? ORDER BY rowid', (source_id,)):
+                if row['locator'] not in used and len(row['text'].strip()) >= 100:
+                    selected.append(dict(row))
+                    if len(selected) == limit:
+                        break
+            if not selected:
+                raise ValueError('No unused editorial candidates remain')
+            con.execute('INSERT INTO editorial_selections VALUES(?,?,?,?,?)',
+                        (job_id, source_id, channel_id, source['sha256'], json.dumps(selected, ensure_ascii=False)))
+            con.commit()
+            return selected

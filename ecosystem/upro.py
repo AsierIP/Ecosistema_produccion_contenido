@@ -159,6 +159,9 @@ class Controller:
                 self.active = {k: v for k, v in self.active.items() if not v["future"].done()}
                 if self.controls["paused"] or self.stopping:
                     return
+                from .workflow import seed_ready_jobs
+                eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
+                seed_ready_jobs(self.root, eligible_plan, self.queue)
                 self.queue.advance_completed_renders()
                 steps = self.queue.list()
                 active_channels = {v["channel"] for v in self.active.values()}
