@@ -44,6 +44,9 @@ def release_request(packet):
     if errors:
         raise QualityError('; '.join(errors))
     metadata = read_json(Path(request['metadata_path']))
+    if (metadata.get('kind') == 'publication_metadata_v1'
+            and read_json(Path(request['qa_path'])).get('metadata_sha256') != refs[str(Path(request['metadata_path']).resolve())]['sha256']):
+        raise QualityError('Independent QA does not bind this publication text')
     if not all(isinstance(metadata.get(k), str) and metadata[k].strip() for k in ('title', 'description')):
         raise ValueError('Approved title and description are required')
     if metadata.get('master_sha256') != refs[str(master.resolve())]['sha256']:

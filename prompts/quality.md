@@ -16,4 +16,15 @@ Devuelve **solo el recibo estructurado de la cápsula**: decisión, hashes revis
 
 ## Contrato de entradas y salida
 
+Para la revisión final del máster, revisa también `metadata.json`: fidelidad del
+resumen, título y créditos públicos exigidos por las licencias de los recursos
+utilizados. Declara el máster y los metadatos en `inputs_reviewed`. Entrega
+`qa.json` como artefacto, con `master_sha256`, `metadata_sha256`, `producer_id`,
+`timeline` y `checks` según `ecosystem/quality.py`; `caption_profile` debe coincidir
+con el perfil cuando se exija. Los checks obligatorios son decode, sync,
+natural_voice, literal_captions, visual_semantics, sources_rights e
+independent_review; cada uno requiere passed, master_sha256 y evidencia real.
+El último identifica un reviewer_id distinto del productor. No copies un PASS
+del productor ni inventes una reproducción para completar este contrato.
+
 `inputs_reviewed` contiene solo entradas declaradas en la cápsula, con ruta, hash y bytes. `artifacts` contiene exclusivamente informes nuevos escritos dentro de `output_directory`; nunca pongas el máster ni entradas externas en artifacts. La prevalidación técnica es una condición de entrada, no sustituye tu revisión independiente. Si la capacidad declarada no está disponible realmente, devuelve BLOCK inmediatamente sin buscar herramientas alternativas ni explorar el repositorio.

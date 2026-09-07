@@ -169,6 +169,8 @@ class Controller:
                 self.queue.advance_completed_renders()
                 from .metadata import advance_metadata
                 advance_metadata(self.root, self.queue)
+                from .delivery import advance_delivery
+                advance_delivery(self.root, self.queue)
                 steps = self.queue.list()
                 active_channels = {v["channel"] for v in self.active.values()}
                 gpu_active = any(v["adapter"] in GPU_ADAPTERS for v in self.active.values())
