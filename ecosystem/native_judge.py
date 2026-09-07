@@ -58,6 +58,7 @@ def prepare(packet, root):
             'technical': read_json(Path(preflight['technical_evidence']['path'])),
             'start_reference_metrics': contract['first_frame_metrics'],
             'automated_observations': observation['observations'],
+            'evidence_context': preflight.get('evidence_context', 'Current storyboard observation'),
             'requested_sample_fps': observation.get('requested_sample_fps')}
     # Probe payloads are deterministic; the model only needs the validated summary.
     technical=body['technical'];streams=technical.get('probe',{}).get('streams',[])

@@ -110,8 +110,10 @@ def advance_batch(root, queue, path):
         contract_path = immutable(folder / 'native-contract.json', contract)
         preflight = immutable(folder / 'preflight.json', {
             'kind': 'quality_preflight_v1', 'scope': 'native_segment',
-            'unit_id': 'native:' + batch['segment_id'] + ':' + contract['source_batch'] + ':' + contract['candidate'],
+            'unit_id': 'native:' + batch['segment_id'] + ':' + contract['source_batch'] + ':' + contract['candidate']
+                       + (':' + batch['storyboard_revision'] if batch.get('storyboard_revision') else ''),
             'master_path': candidate['path'], 'start_reference_path': batch['start_reference']['path'],
+            'evidence_context': batch.get('evidence_context', 'Current storyboard observation'),
             'automated_evidence': ref(observations_path), 'technical_evidence': ref(technical_path)})
         inputs = [preflight, contract_path, technical_path, Path(candidate['path']), observations_path,
                   Path(observation['provider_response']['path']), Path(batch['start_reference']['path'])]

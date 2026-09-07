@@ -35,6 +35,8 @@ def advance_sequence(root, queue, path):
         batch = read_json(batch_path)
         if batch['job_id'] != spec['job_id']:
             continue
+        if batch.get('storyboard_revision') != spec.get('storyboard_revision'):
+            continue
         state_path = batch_path.parent / 'state.json'
         state = read_json(state_path) if state_path.exists() else {}
         if state and state.get('batch_sha256') != file_hash(batch_path):
@@ -72,6 +74,8 @@ def advance_sequence(root, queue, path):
             if step['job_id'] != spec['job_id'] or step['adapter'] != 'vibes_generate':
                 continue
             request = read_json(Path(step['payload']['inputs'][0]['path']))
+            if request.get('storyboard_revision') != spec.get('storyboard_revision'):
+                continue
             if request.get('segment_id', 's01') == segment_id and request['batch_number'] == next_batch:
                 return  # Existing intent/step, including uncertain operations, must be reconciled.
         folder = path.parent / (segment_id + '-b' + str(next_batch).zfill(2))
@@ -113,13 +117,16 @@ def advance_sequence(root, queue, path):
         template_path = immutable(folder / 'selection-template.json', {'kind': 'native_candidate_batch_v1',
                     'channel_id': spec['channel_id'], 'job_id': spec['job_id'], 'mode': spec['mode'],
                     'sequence_id': spec['sequence_id'], 'segment_id': segment_id, 'contract': ref(contract_path),
-                    'review_manifest': ref(review_path), 'start_reference': ref(start)})
+                    'review_manifest': ref(review_path), 'start_reference': ref(start),
+                    **({'storyboard_revision': spec['storyboard_revision']} if spec.get('storyboard_revision') else {})})
         request = {'kind': 'vibes_native_batch_v1', 'channel_id': spec['channel_id'], 'segment_id': segment_id,
                    'sequence_id': spec['sequence_id'], 'continuity_from': segment['continuity_from'],
                    'batch_number': next_batch, 'count': 4, 'project_url': spec['project_url'], 'project_title': spec['project_title'],
                    'start_reference': ref(start), 'prompt': ref(prompt_file), 'selection_template': ref(template_path),
                    'output_directory': str(Path(spec['native_root']) / segment_id / contract['source_batch']),
                    'inputs': [ref(start), ref(prompt_file), ref(template_path), ref(contract_path), ref(review_path)]}
+        if spec.get('storyboard_revision'):
+            request['storyboard_revision'] = spec['storyboard_revision']
         if selected:
             request['predecessor_selection'] = selected[-1]
             request['inputs'].append(selected[-1])

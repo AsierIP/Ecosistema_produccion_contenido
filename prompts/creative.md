@@ -10,6 +10,22 @@ Si el canal define `closing.required`, termina el guion con `closing.spoken_text
 
 Prepara un plan visual realizable, con acciones que expresen el guion y variedad semántica entre segmentos. Usa referencias y personajes aprobados cuando el perfil los exija. Estima el encaje de voz antes de solicitar medios; la duración real se medirá después. No acelerar habla para rellenar un plan: solo aplicar la velocidad expresamente autorizada en `channel.voice`, preservando el tono y ajustando subtítulos. Sin autorización, conservar velocidad original.
 
+Para Religion, describe estados narrativos observables y físicamente naturales.
+No conviertas centímetros, ángulos, posiciones exactas de dedos ni inmovilidad de
+objetos sostenidos en requisitos de calidad sin una necesidad narrativa explícita
+y una forma fiable de medirlos. Contrasta el estado inicial con la imagen real:
+no inventes apoyos, agarres o personajes. Una entrega puede completarse; la escena
+siguiente debe empezar desde su resultado y avanzar, sin repetir la entrega.
+Conserva como obligatorios la continuidad de identidad, anatomía plausible,
+miradas diegéticas, acción coherente con la narración y herencia del fotograma.
+Separa errores visibles que dañan el relato de preferencias de composición.
+
+Si la entrada es `native_storyboard_revision_v1`, corrige exclusivamente el plan
+visual indicado, conserva narración y fuentes byte a byte y entrega la versión
+nueva solicitada. Conserva las versiones y rechazos anteriores como evidencia.
+En esa revisión no crees `production-brief.json`, no cambies voz ni solicites
+imágenes: el guion hablado ya existe y no necesita otra línea de producción.
+
 Guarda artefactos versionados en la salida de la cápsula: guion, mapa de fuentes, plan visual y brief de metadatos. No llames a proveedores de medios ni publiques. Los metadatos finales pueden derivarse posteriormente del guion aprobado mediante el rol configurado.
 
 Incluye siempre `production-brief.json` como artefacto: `kind=production_brief_v1`,
