@@ -9,6 +9,57 @@ from .release import prepare_youtube_schedule
 from .store import Store, QualityError
 
 
+def recover_verified_schedule(root, step, queue):
+    """Resume a separately reconciled upload without rewriting its failed receipt."""
+    from .cache import file_hash
+    from .dispatch import validate_receipt
+    from .release import validate_schedule_receipt
+    result = step.get('result') or {}
+    receipt_path = Path(result.get('receipt_path') or result['run']['receipt_path'])
+    packet = read_json(receipt_path.parent / 'packet.json')
+    receipt = read_json(receipt_path)
+    if (packet.get('job_id') != step['job_id'] or packet.get('role') != 'release'
+            or packet['channel']['id'] != step['channel_id']
+            or validate_receipt(receipt, packet)):
+        raise QualityError('Original release receipt cannot be reconciled')
+    if any(file_hash(Path(r['path'])) != r['sha256'] for r in packet['inputs']):
+        raise QualityError('Release inputs changed during reconciliation')
+    request = release_request(packet)
+    if request['action'] not in {'upload', 'schedule'}:
+        return None
+    with Store(root / '.runtime/production.sqlite3') as store:
+        intents = store.list_intents(step['job_id'])
+        uploads = [i for i in intents if i['platform'] == 'youtube' and i['action'] == 'upload'
+                   and i['state'] == 'verified' and i['master_sha256'] == request['master_sha256']]
+        if len(uploads) != 1:
+            return None
+        upload = uploads[0]
+        schedules = [i for i in intents if i['platform'] == 'youtube' and i['action'] == 'schedule'
+                     and i['state'] == 'verified' and i['payload'].get('upload_intent_id') == upload['id']]
+        if len(schedules) != 1:
+            return None
+        schedule = prepare_youtube_schedule(store, upload['id'], root=root)
+        if validate_schedule_receipt(schedule['evidence'], schedule):
+            raise QualityError('Reconciled schedule lacks remote evidence')
+    request.pop('metadata', None)
+    request.update(action='verify_public', upload_intent_id=upload['id'])
+    path = root / '.runtime/upro/results' / step['id'] / 'reconciled-public-request.json'
+    if path.exists():
+        if read_json(path) != request:
+            raise QualityError('Reconciled handoff changed')
+    else:
+        write_json(path, request, exclusive=True)
+    inputs = [path] + [Path(request[k]) for k in ('master_path', 'qa_path', 'metadata_path')]
+    followup = queue.register({**step['payload'],
+        'inputs': [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in inputs],
+        'reconciled_release_step': step['id'],
+        'not_before': datetime.fromisoformat(schedule['payload']['publishAt'].replace('Z', '+00:00')).timestamp() + 30})
+    queue.retire(step['id'], {'checked': True,
+        'reason': 'Private upload and native schedule independently reconciled; preserve failed agent receipt, never re-upload.',
+        'upload_intent_id': upload['id'], 'schedule_intent_id': schedule['id'], 'followup_step': followup})
+    return followup
+
+
 def enqueue_release_followup(root, step, result, queue):
     """Recover the durable handoff without making another remote request."""
     from .cache import file_hash

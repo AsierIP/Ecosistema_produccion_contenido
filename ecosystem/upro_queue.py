@@ -132,17 +132,18 @@ class Queue:
 
     def advance_completed_releases(self):
         """Resume after a close between recording a release and queuing its next step."""
-        from .release_worker import enqueue_release_followup
+        from .release_worker import enqueue_release_followup, recover_verified_schedule
         steps = self.list()
         created = []
         for step in steps:
-            if step['adapter'] != 'release' or step['state'] != 'accepted':
+            if step['adapter'] != 'release' or step['state'] not in {'accepted', 'blocked', 'uncertain'}:
                 continue
             if any(s['adapter'] == 'release' and step['id'] in s['payload'].get('depends_on', []) for s in steps):
                 continue
             error = self.root / '.runtime/jobs' / step['job_id'] / 'handoffs' / ('error-release-' + step['id'] + '.json')
             try:
-                next_id = enqueue_release_followup(self.root, step, step['result'], self)
+                next_id = (enqueue_release_followup(self.root, step, step['result'], self)
+                           if step['state'] == 'accepted' else recover_verified_schedule(self.root, step, self))
                 if next_id:
                     created.append(next_id)
                 if error.exists() and read_json(error).get('status') != 'resolved':
