@@ -48,6 +48,40 @@ def recover_native_rejection(root, step, queue):
     return True
 
 
+def retry_transient_segment_review(root, step, queue):
+    if step['adapter'] != 'segment_review' or step['state'] not in {'blocked', 'uncertain'}:
+        return False
+    request_path = Path(step['payload']['inputs'][0]['path'])
+    request = read_json(request_path)
+    if request.get('retry_attempt', 0) >= 2 or request.get('prior_review'):
+        return False
+    provider = Path(root) / '.runtime/upro/results' / step['id'] / 'provider'
+    try:
+        intent = read_json(provider / 'intent.json')
+        problem = json.loads(read_json(provider / 'provider-error.json')['detail'])
+        if (intent.get('failed_phase') != 'reviewing' or problem['error']['code'] not in {429, 503}
+                or read_json(provider / 'cleanup.json').get('deleted') is not True):
+            return False
+    except (OSError, ValueError, KeyError):
+        return False
+    if file_hash(request_path) != step['payload']['inputs'][0]['sha256']:
+        raise ValueError('Failed review request changed')
+    for ref in request['inputs']:
+        if file_hash(Path(ref['path'])) != ref['sha256']:
+            raise ValueError('Failed review input changed')
+    retry_path = provider.parent / 'retry-request.json'
+    retry = {**request, 'retry_attempt': request.get('retry_attempt', 0) + 1}
+    if retry_path.exists() and read_json(retry_path) != retry:
+        raise ValueError('Stored review retry changed')
+    if not retry_path.exists():
+        write_json(retry_path, retry, exclusive=True)
+    new_id = queue.register({**step['payload'], 'not_before': step['updated'] + 60,
+                            'inputs': [{'path': str(retry_path.resolve()), 'sha256': file_hash(retry_path)}]})
+    queue.retire(step['id'], {'checked':True, 'reason':'Transient provider error with confirmed remote cleanup; bounded review retry, no video generation.',
+                             'provider_error_code': problem['error']['code'], 'followup_step':new_id})
+    return new_id
+
+
 def extract_native_endpoints(video, output, sequence_id, segment_id):
     from .media import discover, probe
     metadata = probe(video)

@@ -185,9 +185,10 @@ class Controller:
                 if self.controls["paused"] or self.stopping:
                     return
                 from .workflow import seed_ready_jobs, advance_production
-                from .segment_review import recover_native_rejection
+                from .segment_review import recover_native_rejection, retry_transient_segment_review
                 for native_step in self.queue.list():
                     recover_native_rejection(self.root, native_step, self.queue)
+                    retry_transient_segment_review(self.root, native_step, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
                 advance_production(self.root, self.queue)
@@ -302,7 +303,7 @@ class Controller:
                     enabled = self.enabled(cid)
                     state = ("reviewing" if running["adapter"] in {"media_check", "quality"} else "running") if running else "paused" if (not enabled or self.controls["paused"]) else "blocked" if blockers else "queued" if queued else "review_pending" if inspected else "complete" if c['state'] == 'complete' else "ready"
                     if state == 'queued' and queued['payload'].get('not_before', 0) > time.time():
-                        state = 'scheduled'
+                        state = 'scheduled' if queued['adapter'] == 'release' else 'waiting'
                     if c['state'] == 'complete' and not running and not blockers:
                         state = 'complete'
                     video = self.last_video(cid, steps, intents)
