@@ -49,6 +49,7 @@ async function main() {
 }
 main().catch(error => {
   // Do not emit browser logs, cookies, navigation queries or credentials.
-  console.error(JSON.stringify({status: 'BROWSER_ERROR', error_type: error.name || 'Error'}));
+  const detail = String(error.message || '').split('\n')[0].replace(/https?:\/\/\S+/g, '[url]');
+  console.error(JSON.stringify({status: 'BROWSER_ERROR', error_type: error.name || 'Error', detail}));
   process.exitCode = 1;
 });
