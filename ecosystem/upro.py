@@ -189,6 +189,8 @@ class Controller:
                 for native_step in self.queue.list():
                     recover_native_rejection(self.root, native_step, self.queue)
                     retry_transient_segment_review(self.root, native_step, self.queue)
+                from .native_batch import advance_native_batches
+                advance_native_batches(self.root, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
                 advance_production(self.root, self.queue)

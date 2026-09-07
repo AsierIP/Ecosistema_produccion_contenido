@@ -12,7 +12,7 @@ from .config import read_json, write_json
 
 def recover_native_rejection(root, step, queue):
     """A sealed negative decision may survive a timeout; never recover a partial PASS."""
-    if step['adapter'] != 'segment_quality' or step['state'] != 'blocked' or (step.get('result') or {}).get('status') != 'UNCERTAIN':
+    if step['adapter'] != 'segment_quality' or step['state'] != 'blocked' or (step.get('result') or {}).get('status') not in {'UNCERTAIN', 'BLOCKED'}:
         return False
     folder = Path(step['result']['receipt_path']).parent
     selection_path = folder / 'native-selection.json'
@@ -20,13 +20,17 @@ def recover_native_rejection(root, step, queue):
         return False
     selection = read_json(selection_path)
     packet = read_json(folder / 'packet.json')
+    if step['result']['status'] == 'BLOCKED':
+        receipt = read_json(Path(step['result']['receipt_path']))
+        if receipt.get('decision') != 'REJECT' or receipt.get('job_id') != step['job_id'] or step['result'].get('errors'):
+            return False
     if (selection.get('decision') != 'REJECT' or selection.get('job_id') != step['job_id']
             or selection.get('reviewer') != {'role':'quality','model':'gpt-5.6-sol','reasoning_effort':'medium','independent':True}
             or not selection.get('defects')):
         return False
     for ref in packet['inputs']:
         if file_hash(Path(ref['path'])) != ref['sha256']:
-            raise ValueError('Timed-out native QA inputs changed')
+            raise ValueError('Native QA inputs changed')
     candidate = selection['candidate']
     if candidate.get('qa_verdict') != 'FAIL' or not candidate.get('rejection_causes'):
         return False
@@ -38,7 +42,7 @@ def recover_native_rejection(root, step, queue):
     visual = read_json(visual_path)
     if visual.get('decision') != 'FAIL' or visual.get('candidate_sha256') != candidate['sha256']:
         return False
-    evidence = {'checked':True,'reason':'Recovered sealed independent REJECT after final-message timeout. No candidate accepted and no remote generation repeated.',
+    evidence = {'checked':True,'reason':'Sealed independent REJECT preserved; continue candidate selection without accepting this candidate or repeating generation.',
                 'selection_path':str(selection_path),'selection_sha256':file_hash(selection_path)}
     write_json(folder / 'negative-reconciliation.json', evidence)
     with sqlite3.connect(Path(root) / '.runtime/agent-runs.sqlite3') as db:
