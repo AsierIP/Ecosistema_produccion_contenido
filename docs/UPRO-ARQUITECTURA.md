@@ -88,13 +88,22 @@ Upro ejecutó cuatro animaciones CUDA/NVENC y el montaje de una prueba de
 encadenó por sí solo la decodificación y la vista previa del máster. Esto valida
 ese tramo local; no valida la generación de nuevos recursos ni la publicación.
 
-El ejecutor CLI instalado no tenía servidores MCP configurados. Las herramientas
-del navegador integrado de la conversación no se transfieren por registrar una
-etapa en la cola. Quedan por integrar y probar, en un entorno independiente:
+La comprobación inicial de conexiones se hizo dentro del entorno restringido y
+no representaba la configuración real del usuario. Una segunda comprobación en
+el entorno real confirmó autenticación ChatGPT y los servidores `cua_repl` y
+`node_repl` habilitados. Esto acredita configuración, no disponibilidad funcional
+del navegador tras cerrar la aplicación. Quedan por integrar y probar:
 generación visual por proveedor, narración con la voz aprobada, revisión completa
 de imagen y sonido, y publicación con identidad y recibo público. No activar el
 indicador global de producción para ocultar esta dependencia. No usar cookies,
 claves ni sesiones extraídas de la aplicación como atajo de integración.
+
+El usuario fija cero euros adicionales: usar su suscripción actual de ChatGPT
+y los recursos locales. `monthly_budget_eur=0` se refiere a nuevos servicios,
+no al precio de esa suscripción. `paid_api_enabled=false` permanece vigente;
+no contratar servicios ni comprar créditos. Los agentes deben usar el acceso
+ChatGPT admitido por Codex. Si se alcanza el límite incluido, detener los agentes
+hasta que vuelva a estar disponible; nunca cambiar a una API de pago.
 
 Tras un cierre inesperado las etapas en curso pasan a inciertas. No se vuelven a
 ejecutar. Hay que inspeccionar evidencias y procesos antes de usar
