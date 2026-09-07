@@ -101,6 +101,7 @@ def preparation_readiness(channel, local, adapter):
     Identity and destination checks still apply at generation/publication stages.
     """
     allowed = {"creative", "metadata", "quality", "ambient", "cutout", "media_check", "visual", "voice", "voice_generate", "release", "captions", "av_review"}
+    allowed.add('segment_review')
     if adapter not in allowed:
         return ["La etapa no admite ejecución preparatoria"]
     errors = channel_errors(channel)

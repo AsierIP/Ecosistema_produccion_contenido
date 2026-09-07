@@ -18,6 +18,7 @@ from .cache import file_hash
 from .config import read_json, write_json
 
 ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release", "captions", "av_review"}
+ADAPTERS.add('segment_review')
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -232,8 +233,10 @@ def execute_step(root, step):
             # The controller persists accepted first, then resumes this handoff
             # on every tick. A crash here must not replay a remote operation.
             result['followup_pending'] = True
-    elif adapter == 'av_review':
+    elif adapter in {'av_review', 'segment_review'}:
         from .av_review import run_review
+        if adapter == 'segment_review':
+            from .segment_review import run_segment_review as run_review
         from .store import Store
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
             raise ValueError('Expected one automated review request')
