@@ -37,6 +37,9 @@ async function main() {
       return;
     }
     await page.goto('https://studio.youtube.com/channel/' + account, {waitUntil: 'domcontentloaded', timeout: 45000});
+    // Studio can show a browser compatibility notice, which is not a login failure.
+    const continueToStudio = page.getByRole('link', {name: 'Cambiar a la nueva versión de Studio', exact: true});
+    if (await continueToStudio.isVisible()) await continueToStudio.click();
     if (mode === 'connect') {
       saveStatus('AUTH_REQUIRED');
       console.log(JSON.stringify({status: 'CONNECTION_WINDOW_OPEN', channel_id: channelId,
@@ -69,6 +72,7 @@ async function main() {
     saveStatus(identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED');
     console.log(JSON.stringify({status: identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED',
       channel_id: channelId, expected_account_id: account,
+      observed_host: current.hostname, observed_path: current.pathname,
       authenticated: Boolean(identityMatch && studioControls), publication_performed: false}));
   } finally { await context.close(); }
 }
