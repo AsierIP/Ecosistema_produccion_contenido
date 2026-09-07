@@ -54,6 +54,7 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     write_json(packet_path, packet)
     receipt = output / "receipt.json"
     command = [shutil.which("codex") or "codex", "exec", "--model", routing["model"],
+               "-c", 'forced_login_method="chatgpt"',
                "-c", f'model_reasoning_effort="{routing["effort"]}"',
                "--sandbox", "workspace-write", "--cd", str(root),
                "--output-schema", str(root / "config/receipt.schema.json"),

@@ -2,7 +2,7 @@
 
 Plans are prepared locally by the production code, then consumed by Upro.
 Read-only validation may run before migration; production never bypasses readiness.
-Remote visuals, TTS and publication have no qualified unattended adapter yet.
+ImageGen scenes have an adapter; Vibes, TTS and publication are not connected yet.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import time
 from .cache import file_hash
 from .config import read_json, write_json
 
-ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient"}
+ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual"}
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -188,7 +188,7 @@ def execute_step(root, step):
     out = root / ".runtime/upro/results" / step["id"]
     out.mkdir(parents=True, exist_ok=True)
     adapter = plan["adapter"]
-    if adapter in {"creative", "metadata", "quality"}:
+    if adapter in {"creative", "metadata", "quality", "visual"}:
         from .worker import run_stage
         result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
         accepted = result.get("status") == "ACCEPTED" or (result.get("status") == "ALREADY_RECORDED" and result.get("run", {}).get("state") == "accepted")

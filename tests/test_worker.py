@@ -8,10 +8,48 @@ from unittest.mock import patch
 from ecosystem.cache import file_hash
 from ecosystem.config import ROOT
 from ecosystem.store import Store
-from ecosystem.worker import collect_usage, run_stage
+from ecosystem.worker import collect_usage, run_stage, subscription_environment, visual_preflight
 
 
 class WorkerBoundaryTests(unittest.TestCase):
+    def test_subscription_workers_strip_api_key_overrides(self):
+        with patch.dict('os.environ', {'OPENAI_API_KEY': 'fixture', 'CODEX_API_KEY': 'fixture', 'UPRO_TEST': 'kept'}):
+            env = subscription_environment()
+        self.assertNotIn('OPENAI_API_KEY', env)
+        self.assertNotIn('CODEX_API_KEY', env)
+        self.assertEqual(env['UPRO_TEST'], 'kept')
+
+    def test_visual_preflight_rejects_cross_channel_and_unbounded_work(self):
+        request = self.root / 'image-request.json'
+        packet = {'channel': {'id': 'sabias-que', 'visual': {'generation_provider': 'imagegen', 'approved': True}},
+                  'inputs': [{'path': str(request)}]}
+        valid = {'kind': 'image_generation_request_v1', 'channel_id': 'sabias-que', 'scene_id': 'scene-01', 'image_count': 1,
+                 'prompt': 'Approved visual brief', 'source_basis': 'Source pack'}
+        for change in ({'channel_id': 'religion'}, {'image_count': 4}, {'source_basis': ''}):
+            request.write_text(json.dumps({**valid, **change}), encoding='utf-8')
+            self.assertTrue(visual_preflight(packet))
+        request.write_text(json.dumps(valid), encoding='utf-8')
+        self.assertEqual(visual_preflight(packet), [])
+        packet['channel']['visual']['generation_provider'] = 'vibes'
+        self.assertTrue(visual_preflight(packet))
+
+    def test_visual_attempt_limit_is_per_scene_not_entire_reel(self):
+        with Store(self.root / '.runtime/production.sqlite3') as store:
+            job = store.enqueue_job('sabias-que', '2026-09-07')['id']
+        request = self.root / 'image-request.json'
+        def run(scene, prompt):
+            request.write_text(json.dumps({'kind': 'image_generation_request_v1',
+                'channel_id': 'sabias-que', 'scene_id': scene, 'image_count': 1,
+                'prompt': prompt, 'source_basis': 'approved source'}), encoding='utf-8')
+            return run_stage(job, 'visual', [request], root=self.root, execute=True)
+        with patch('ecosystem.worker.subprocess.run') as process:
+            process.return_value.returncode = 1
+            run('scene-01', 'first')
+            run('scene-01', 'corrected')
+            exhausted = run('scene-01', 'third')
+            self.assertIn('agotado', exhausted['reason'])
+            run('scene-02', 'different scene')
+            self.assertEqual(process.call_count, 3)
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)

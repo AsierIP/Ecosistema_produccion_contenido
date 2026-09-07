@@ -1,18 +1,56 @@
 """Execute a prepared local agent stage once; never equate a receipt with release.
 
-Remote visual generation and release need a qualified platform adapter. This
-runner intentionally exposes only editorial, metadata and independent QA stages.
+ImageGen is supported for one scene per request. Other remote visual providers
+and release still need a qualified platform adapter.
 """
 from __future__ import annotations
 from contextlib import closing
 from datetime import datetime, timezone
 import json
+import os
+import re
 from pathlib import Path
 import sqlite3
 import subprocess
 import time
 from .config import ROOT, read_json, write_json
 from .dispatch import build_packet, validate_receipt
+
+
+def subscription_environment():
+    """Do not let a shell API-key override switch a subscribed worker to billing."""
+    return {key: value for key, value in os.environ.items()
+            if key.upper() not in {'OPENAI_API_KEY', 'CODEX_API_KEY'}}
+
+
+def visual_preflight(packet):
+    if packet['channel']['visual'].get('generation_provider') != 'imagegen':
+        return ['El proveedor requiere otro adaptador; no sustituir Vibes por imágenes estáticas']
+    if packet['channel']['visual'].get('approved') is not True:
+        return ['Falta estilo aprobado']
+    requests = []
+    for ref in packet['inputs']:
+        path = Path(ref['path'])
+        if path.suffix.lower() != '.json' or path.stat().st_size > 100_000:
+            continue
+        try:
+            data = read_json(path)
+            if isinstance(data, dict) and data.get('kind') == 'image_generation_request_v1':
+                requests.append(data)
+        except (OSError, ValueError):
+            continue
+    if len(requests) != 1:
+        return ['Falta una petición image_generation_request_v1 única']
+    request = requests[0]
+    if not isinstance(request.get('scene_id'), str) or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', request['scene_id']):
+        return ['Falta un scene_id estable para limitar los intentos por escena']
+    if request.get('channel_id') != packet['channel']['id'] or request.get('image_count') != 1:
+        return ['La petición debe corresponder al canal y a una sola imagen']
+    if not isinstance(request.get('prompt'), str) or not 1 <= len(request['prompt']) <= 6000:
+        return ['Falta un prompt visual acotado']
+    if not request.get('source_basis'):
+        return ['Falta la base editorial de la imagen']
+    return []
 
 def quality_preflight(packet):
     """Require explicit capability and technical evidence before consuming tokens.
@@ -86,10 +124,24 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
     packet = build_packet(job_id, role, artifacts, root)
     if not execute:
         return {k:v for k,v in packet.items() if k != "stdin"}
-    if role not in {"creative", "metadata", "quality"}:
+    if role not in {"creative", "metadata", "quality", "visual"}:
         return {"status": "BLOCKED", "reason": "La generación remota y publicación requieren un adaptador cualificado; la cápsula está preparada"}
     if not artifacts:
         return {"status": "BLOCKED", "reason": "Faltan entradas concretas: ficha de fuentes, guion aprobado o máster con evidencias según la etapa"}
+    unit_id = 'stage'
+    if role == 'visual':
+        errors = visual_preflight(read_json(Path(packet['packet_path'])))
+        if errors:
+            return {'status': 'BLOCKED', 'reason': 'Visual preflight', 'errors': errors, 'agent_started': False}
+        for ref in read_json(Path(packet['packet_path']))['inputs']:
+            p = Path(ref['path'])
+            if p.suffix.lower() == '.json' and p.stat().st_size <= 100_000:
+                try:
+                    value = read_json(p)
+                    if isinstance(value, dict) and value.get('kind') == 'image_generation_request_v1':
+                        unit_id = value['scene_id']
+                except (OSError, ValueError):
+                    continue
     if role == "quality":
         preflight_errors = quality_preflight(read_json(Path(packet["packet_path"])))
         if preflight_errors:
@@ -99,8 +151,10 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
     timeout = min(timeout, configured_timeout) if timeout is not None else configured_timeout
     with closing(sqlite3.connect(root / ".runtime/agent-runs.sqlite3", isolation_level=None)) as con:
         con.row_factory = sqlite3.Row
-        con.execute("CREATE TABLE IF NOT EXISTS runs(cache_key TEXT PRIMARY KEY, job_id TEXT, role TEXT, state TEXT, model TEXT, started REAL, elapsed REAL, input_tokens INTEGER, output_tokens INTEGER, cached_input_tokens INTEGER, receipt_path TEXT)")
         con.execute("BEGIN IMMEDIATE")
+        con.execute("CREATE TABLE IF NOT EXISTS runs(cache_key TEXT PRIMARY KEY, job_id TEXT, role TEXT, state TEXT, model TEXT, started REAL, elapsed REAL, input_tokens INTEGER, output_tokens INTEGER, cached_input_tokens INTEGER, receipt_path TEXT)")
+        if 'unit_id' not in {r['name'] for r in con.execute('PRAGMA table_info(runs)')}:
+            con.execute("ALTER TABLE runs ADD COLUMN unit_id TEXT NOT NULL DEFAULT 'stage'")
         old = con.execute("SELECT * FROM runs WHERE cache_key=?", (packet["cache_key"],)).fetchone()
         if old:
             con.rollback()
@@ -116,13 +170,13 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         if unresolved:
             con.rollback()
             return {"status": "BLOCKED", "reason": "Hay una ejecución anterior activa o incierta; reconciliarla primero"}
-        attempts = con.execute("SELECT COUNT(*) FROM runs WHERE job_id=? AND role=?", (job_id, role)).fetchone()[0]
+        attempts = con.execute("SELECT COUNT(*) FROM runs WHERE job_id=? AND role=? AND unit_id=?", (job_id, role, unit_id)).fetchone()[0]
         maximum = read_json(root / "config/models.json")["max_attempts_per_stage"]
         if attempts >= maximum:
             con.rollback()
             return {"status": "BLOCKED", "reason": "Presupuesto de intentos de esta etapa agotado"}
         started = time.time()
-        con.execute("INSERT INTO runs(cache_key,job_id,role,state,model,started,receipt_path) VALUES(?,?,?,'running',?,?,?)", (packet["cache_key"], job_id, role, packet["model"], started, packet["receipt_path"]))
+        con.execute("INSERT INTO runs(cache_key,job_id,role,state,model,started,receipt_path,unit_id) VALUES(?,?,?,'running',?,?,?,?)", (packet["cache_key"], job_id, role, packet["model"], started, packet["receipt_path"], unit_id))
         con.commit()
         output = Path(packet["packet_path"]).parent
         events_path = output / "events.jsonl"
@@ -130,16 +184,31 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         state = "blocked"
         usage = {"input_tokens": None, "output_tokens": None, "cached_input_tokens": None}
         errors = []
+        blockers = []
         try:
+            if role == 'visual':
+                from .visual_worker import prepare_intent
+                prepare_intent(read_json(Path(packet['packet_path'])))
             with events_path.open("w", encoding="utf-8") as events, error_path.open("w", encoding="utf-8") as error:
                 completed = subprocess.run(packet["argv"], input=packet["stdin"], stdout=events, stderr=error,
                                            text=True, encoding="utf-8", timeout=timeout, shell=False, check=False,
+                                           env=subscription_environment(),
                                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             if completed.returncode:
                 errors.append(f"El agente terminó con código {completed.returncode}; revisar el registro local")
             else:
                 receipt = read_json(Path(packet["receipt_path"]))
+                blockers = receipt.get('blockers', [])
+                if role == 'visual':
+                    from .visual_worker import seal_receipt
+                    write_json(output / 'agent-response.json', receipt)
+                    receipt = seal_receipt(receipt, read_json(Path(packet['packet_path'])))
+                    write_json(Path(packet['receipt_path']), receipt)
                 errors.extend(validate_receipt(receipt, read_json(Path(packet["packet_path"]))))
+                if role == 'visual' and receipt.get('decision') == 'ACCEPT':
+                    pictures = [Path(a['path']) for a in receipt.get('artifacts', []) if Path(a['path']).suffix.lower() == '.png']
+                    if len(pictures) != 1 or pictures[0].read_bytes()[:8] != b'\x89PNG\r\n\x1a\n':
+                        errors.append('La etapa visual necesita exactamente una imagen PNG real')
                 if not errors:
                     state = "accepted" if receipt["decision"] == "ACCEPT" else "blocked"
         except subprocess.TimeoutExpired:
@@ -154,6 +223,7 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         elapsed = time.time() - started
         con.execute("UPDATE runs SET state=?,elapsed=?,input_tokens=?,output_tokens=?,cached_input_tokens=? WHERE cache_key=?", (state, elapsed, usage["input_tokens"], usage["output_tokens"], usage["cached_input_tokens"], packet["cache_key"]))
         report = {"status": state.upper(), "job_id": job_id, "role": role, "model": packet["model"], "elapsed_seconds": round(elapsed, 2), "usage": usage, "errors": errors, "receipt_path": packet["receipt_path"], "recorded_at": datetime.now(timezone.utc).isoformat(), "production_complete": False, "truncated_logs": truncated_logs, "usage_coverage": "completed_turn_events_only", "token_cap_enforced": False}
+        report['blockers'] = blockers
         write_json(output / "execution.json", report)
         return report
 

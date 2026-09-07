@@ -28,12 +28,25 @@ class DispatchTests(unittest.TestCase):
         self.assertEqual(result["model"], "gpt-5.6-sol")
         self.assertLess(result["input_chars"], 24000)
         self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", result["argv"])
+        self.assertIn('forced_login_method="chatgpt"', result['argv'])
 
     def test_release_packet_inherits_global_youtube_delay(self):
         result = build_packet(self.job, 'release', root=self.root)
         packet = json.loads(Path(result['packet_path']).read_text(encoding='utf-8'))
         self.assertEqual(packet['youtube_release']['publish_delay_seconds'], 7200)
         self.assertIs(packet['youtube_release']['user_approval_required'], False)
+
+    def test_output_schema_requires_all_declared_fields_for_provider(self):
+        schema = json.loads((self.root / 'config/receipt.schema.json').read_text(encoding='utf-8'))
+        def strict(node):
+            if node.get('type') == 'object':
+                self.assertEqual(set(node['required']), set(node['properties']))
+                self.assertIs(node['additionalProperties'], False)
+                for value in node['properties'].values():
+                    strict(value)
+            elif node.get('type') == 'array':
+                strict(node['items'])
+        strict(schema)
 
     def test_missing_inputs_and_remote_adapter_do_not_consume_tokens(self):
         with patch("ecosystem.worker.subprocess.run") as execute:

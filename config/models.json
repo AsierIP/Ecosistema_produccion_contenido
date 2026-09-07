@@ -83,6 +83,7 @@
   },
   "runner_limits": {
     "timeout_seconds_by_role": {
+      "visual": 480,
       "creative": 300,
       "metadata": 120,
       "quality": 420

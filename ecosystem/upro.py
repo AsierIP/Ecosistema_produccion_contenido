@@ -228,6 +228,12 @@ class Controller:
                         blockers.append("Una etapa quedó interrumpida o incierta; requiere reconciliación.")
                     if any(s["state"] == "blocked" for s in tasks):
                         blockers.append("Una etapa no superó la validación; revisar antes de repetir.")
+                        for step in tasks:
+                            if step['state'] == 'blocked':
+                                detail = step.get('result') or {}
+                                causes = detail.get('blockers') or detail.get('errors') or [detail.get('reason')]
+                                if isinstance(causes, list):
+                                    blockers.extend(x[:500] for x in causes[:5] if isinstance(x, str) and x)
                     if any(i["job_id"] == c["job_id"] and i["state"] in {"sending", "uncertain"} for i in intents):
                         blockers.append("Publicación incierta pendiente de reconciliar.")
                     running = next((s for s in tasks if s["state"] == "running"), None)

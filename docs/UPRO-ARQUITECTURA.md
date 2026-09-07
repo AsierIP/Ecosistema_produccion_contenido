@@ -32,7 +32,8 @@ que terminen las etapas en curso.
 | Movimiento ambiental | CUDA y NVENC existentes | Reserva global GPU y protección de objetos rígidos |
 | Montaje cómic | FFmpeg y NVENC existentes | Máster local y evidencia técnica |
 | Inspección de máster | FFprobe y FFmpeg | Decodificación completa; no sustituye revisión artística |
-| Imágenes nuevas, voz y publicación | Pendiente | No se presentan como producción automática validada |
+| Imagen individual | ImageGen mediante Codex con ChatGPT | Conexión probada; mantiene rechazo artístico y no repite variantes |
+| Voz y publicación | Pendiente | No se presentan como producción automática validada |
 
 Las etapas GPU adquieren y renuevan su reserva global en los adaptadores
 existentes. Dos canales pueden avanzar en tareas distintas, pero no iniciar dos
@@ -110,6 +111,38 @@ ejecutar. Hay que inspeccionar evidencias y procesos antes de usar
 `--reconcile ID --evidence resultado.json` con `checked: true` y `reason`.
 Esto archiva el intento; cualquier corrección necesita un plan nuevo. Tampoco se
 repite una publicación cuyo resultado aún no se haya reconciliado.
+
+## Prueba funcional del ejecutor y generación visual
+
+La prueba de un proceso CLI real confirmó conexión al navegador y disponibilidad
+de ImageGen usando ChatGPT. No acreditó percepción completa de audio ni vídeo;
+no crear un preflight QA con esas capacidades a true. Tampoco se ha comprobado
+el navegador con la aplicación Codex cerrada.
+
+La primera ejecución visual descubrió un error real de esquema estructurado:
+`inputs_reviewed` debía figurar en `required`. Se corrigió y se añadió una prueba
+de compatibilidad estricta para todos los objetos del esquema. El fallo se
+reconcilió antes de un segundo intento: no había ocurrido generación remota.
+
+El segundo intento generó un PNG real y lo rechazó por composición insuficiente
+para los subtítulos. Se conserva el resultado sin aprobarlo ni regenerarlo. La
+telemetría de ese intento fue 714817 tokens de entrada (640256 en caché) y 6667
+de salida; estas cifras no incluyen el trabajo de desarrollo ni son una medida
+de ahorro. La coordinación y sellado de archivos se trasladaron después al
+código local para evitar esa actividad repetitiva del agente. Este cambio está
+probado localmente; su ahorro real aún no se ha medido con una nueva generación.
+
+Cada petición `image_generation_request_v1` lleva `channel_id`, `scene_id`,
+`image_count=1`, `prompt` y `source_basis`. Los intentos se limitan por escena,
+para que la tercera escena de un reel no se interprete como el tercer reintento.
+Un resultado incierto sigue bloqueando el trabajo hasta reconciliarlo.
+El agente devuelve una sola ruta generada; el ejecutor restringe su origen,
+copia el PNG, calcula hashes y conserva procedencia sin atribuirse QA artística.
+
+Todos los agentes usan `forced_login_method="chatgpt"`; las variables heredadas
+`OPENAI_API_KEY` y `CODEX_API_KEY` se excluyen de su proceso. Las credenciales
+no se copian ni se escriben en Git. La voz original sigue siendo Google Gemini
+TTS; su existencia no significa que esté incluida en ChatGPT Pro.
 
 ## Publicación diferida en YouTube
 
