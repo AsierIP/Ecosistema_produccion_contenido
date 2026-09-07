@@ -20,11 +20,17 @@ suficientes propuestas distintas para cambios cada cinco segundos de voz; el
 motor seleccionará las necesarias tras medir el audio. No generar las imágenes.
 No convertir referencias literales ni indicaciones visuales en palabras narradas.
 La entrega de este formato no constituye QA independiente ni licencia de publicación.
+Para ¿Sabías que?, incluye `description`: un único párrafo breve que resuma el
+reel, sin hashtags, bibliografía ni llamada a la acción. El motor añadirá la
+llamada exacta del canal sin consumir otra ejecución de un agente.
 Para ¿Sabías que?, declara también `documentary`: si procede una imagen real,
 `needed=true` y su fuente, licencia y localización como artefacto; si no procede,
 `needed=false` con un motivo concreto. No omitas la búsqueda de una imagen real
 relevante por comodidad. Si aún no tienes el archivo o sus derechos, deja explícito
 el bloqueo; no inventes rutas ni licencias. El montaje admite `path`, `sha256`,
 `source_url`, `license_evidence` y `scene_index` (desde cero) cuando estén disponibles.
+Incluye `attribution_required` como booleano basado en la licencia; si es true,
+incluye `author`, `license_name` y `changes` para el crédito público mínimo.
+No supongas que una imagen carece de obligaciones por estar disponible en Internet.
 
 Devuelve **solo el recibo estructurado definido por la cápsula**: trabajo, etapa, decisión, artefactos con rutas/hashes/bytes, comprobaciones realmente efectuadas, evidencia y bloqueos. No declares QA independiente ni derechos resueltos sin evidencia. No incluyas secretos, sesiones, correos privados o el contenido completo del repositorio.
