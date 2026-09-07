@@ -81,6 +81,7 @@ class Controller:
         self.max_workers = max(1, min(4, int(self.settings.get("max_workers", 2))))
         self.pool = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="upro")
         self.active = {}
+        self.browser_connections = {}
         self.plan = {"channels": []}
         self.activity = self.load_activity()
         self.last_error = None
@@ -110,6 +111,17 @@ class Controller:
             self.activity = (self.activity + [item])[-60:]
             with (self.runtime / "activity.jsonl").open("a", encoding="utf-8") as log:
                 log.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+    def connect_browser(self, channel_id):
+        from .browser import open_connection
+        with self.guard:
+            if any(w['channel'] == channel_id for w in self.active.values()):
+                raise ValueError('Espera a que termine la etapa de este canal antes de conectar su navegador.')
+            previous = self.browser_connections.get(channel_id)
+            if previous is not None and previous.poll() is None:
+                return
+            self.browser_connections[channel_id] = open_connection(channel_id, root=self.root)
+            self.event('Acceso de YouTube abierto en el navegador propio. Cierra esa ventana al terminar.', line_id=channel_id)
 
     def save_controls(self):
         temporary = self.control_path.with_suffix(".tmp")
@@ -437,7 +449,9 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(data, dict):
                 raise ValueError("Petición incorrecta")
             path = urlsplit(self.path).path
-            if path.startswith("/api/lines/"):
+            if path.startswith('/api/browser/') and data == {}:
+                c.connect_browser(path.removeprefix('/api/browser/'))
+            elif path.startswith("/api/lines/"):
                 if set(data) != {"enabled"} or not isinstance(data["enabled"], bool):
                     raise ValueError("enabled debe ser verdadero o falso")
                 c.set_line(path.removeprefix("/api/lines/"), data["enabled"])

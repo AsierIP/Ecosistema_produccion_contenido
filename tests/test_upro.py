@@ -15,6 +15,16 @@ from ecosystem.upro_queue import Queue
 
 
 class UproTests(unittest.TestCase):
+    def test_browser_connection_requires_csrf_and_reuses_live_window(self):
+        with patch('ecosystem.browser.open_connection') as launch:
+            launch.return_value.poll.return_value = None
+            self.assertEqual(self.request('POST', '/api/browser/religion', {})[0], 403)
+            launch.assert_not_called()
+            headers = {'X-Upro-Token': self.controller.token}
+            for _ in range(2):
+                self.assertEqual(self.request('POST', '/api/browser/religion', {}, headers)[0], 200)
+            launch.assert_called_once_with('religion', root=self.root)
+
     def test_delayed_step_survives_restart_without_early_claim(self):
         plan = {'schema_version': 1, 'job_id': self.job, 'channel_id': 'religion',
                 'adapter': 'media_check', 'mode': 'validation', 'not_before': 2000,

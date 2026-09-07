@@ -204,6 +204,14 @@
     toggle.append(button);
     header.append(toggle);
     article.append(header);
+    if (!line.locked) {
+      const connect = node('button', 'button', 'Conectar YouTube');
+      connect.type = 'button';
+      connect.dataset.browserChannel = String(line.id);
+      connect.disabled = !status?.csrf_token || mutating;
+      connect.title = 'Abrir el navegador propio de este canal para iniciar sesión';
+      article.append(connect);
+    }
 
     const body = node("div", "line-body");
     const [label, type] = lineState(line);
@@ -405,6 +413,11 @@
   }
 
   $("lines").addEventListener("click", (event) => {
+    const connect = event.target.closest('button[data-browser-channel]');
+    if (connect && !connect.disabled) {
+      mutate(`/api/browser/${encodeURIComponent(connect.dataset.browserChannel)}`, {}, 'Acceso abierto en Chrome. Completa el inicio de sesión y cierra esa ventana.');
+      return;
+    }
     const button = event.target.closest("button[data-line-id]");
     if (!button || button.disabled || !status) return;
     const line = status.lines.find((entry) => String(entry.id) === button.dataset.lineId);
