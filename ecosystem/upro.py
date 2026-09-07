@@ -26,7 +26,7 @@ STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y des
                 "quality": "Revisión independiente", "media_check": "Inspección del vídeo",
                 "cutout": "Montaje del cómic", "ambient": "Animación de escenas",
                 "voice": "Preparación de la voz", "voice_generate": "Generación de la narración",
-                "captions": "Subtítulos sincronizados",
+                "captions": "Subtítulos sincronizados", "av_review": "Revisión audiovisual automática",
                 "visual": "Creación de imágenes"}
 
 
@@ -169,6 +169,8 @@ class Controller:
                 self.queue.advance_completed_renders()
                 from .metadata import advance_metadata
                 advance_metadata(self.root, self.queue)
+                from .av_review import advance_reviews
+                advance_reviews(self.root, self.queue)
                 from .delivery import advance_delivery
                 advance_delivery(self.root, self.queue)
                 self.queue.advance_completed_releases()

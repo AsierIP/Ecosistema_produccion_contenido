@@ -75,9 +75,31 @@ def quality_preflight(packet):
     capabilities = manifest.get("capabilities", {})
     if not isinstance(capabilities, dict):
         capabilities = {}
-    for key in ("full_video_playback", "full_audio_playback"):
-        if capabilities.get(key) is not True:
-            errors.append("Capacidad QA ausente: " + key)
+    automatic = manifest.get('automated_evidence')
+    if automatic and packet.get('review_policy', {}).get('mode') == 'automatic':
+        from .cache import file_hash
+        try:
+            declared_paths = {str(Path(r['path']).resolve()): r['sha256'] for r in packet['inputs']}
+            path = Path(automatic['path'])
+            if declared_paths.get(str(path.resolve())) != automatic['sha256'] or file_hash(path) != automatic['sha256']:
+                raise ValueError('Automated evidence hash mismatch')
+            review = read_json(path)
+            if review.get('kind') != 'automated_av_evidence_v1' or review.get('status') != 'EVIDENCE_READY':
+                raise ValueError('Automated evidence incomplete')
+            master = Path(review['master_path'])
+            if declared_paths.get(str(master.resolve())) != review['master_sha256'] or file_hash(master) != review['master_sha256']:
+                raise ValueError('Automated review belongs to another master')
+            evidence_keys = ['provider_response', 'local_asr'] + (['intro_asr'] if review.get('intro_asr') else [])
+            for key in evidence_keys:
+                ref = review[key]
+                if declared_paths.get(str(Path(ref['path']).resolve())) != ref['sha256'] or file_hash(Path(ref['path'])) != ref['sha256']:
+                    raise ValueError('Missing original automated review evidence')
+        except (KeyError, TypeError, ValueError, OSError) as exc:
+            errors.append(str(exc))
+    else:
+        for key in ("full_video_playback", "full_audio_playback"):
+            if capabilities.get(key) is not True:
+                errors.append("Capacidad QA ausente: " + key)
     evidence = manifest.get("technical_evidence", {})
     declared = {ref["sha256"]: ref for ref in packet["inputs"]}
     if not isinstance(evidence, dict) or not isinstance(evidence.get("sha256"), str) or evidence.get("sha256") not in declared:

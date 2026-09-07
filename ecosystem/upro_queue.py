@@ -17,7 +17,7 @@ import time
 from .cache import file_hash
 from .config import read_json, write_json
 
-ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release", "captions"}
+ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release", "captions", "av_review"}
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -225,6 +225,21 @@ def execute_step(root, step):
             # The controller persists accepted first, then resumes this handoff
             # on every tick. A crash here must not replay a remote operation.
             result['followup_pending'] = True
+    elif adapter == 'av_review':
+        from .av_review import run_review
+        from .store import Store
+        if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
+            raise ValueError('Expected one automated review request')
+        with Store(root / '.runtime/production.sqlite3') as store:
+            owner = 'av-review:' + step['id']
+            lease = store.claim_lease('remote', owner, 1200)
+            if not lease:
+                raise ValueError('El proveedor remoto está ocupado')
+            try:
+                result = run_review(paths[0], out, root=root)
+            finally:
+                store.release_lease('remote', owner, lease['token'])
+        accepted = result.get('status') == 'EVIDENCE_READY'
     elif adapter == 'captions':
         from .captions import prepare_captions
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:

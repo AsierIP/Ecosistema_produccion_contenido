@@ -7,6 +7,12 @@ ocurre después de publicar y orienta producciones futuras. No exijas el método
 histórico `full-playback-human-visual-review` ni presentes al modelo como humano.
 Conserva la revisión editorial independiente y las comprobaciones técnicas;
 los defectos materiales requieren corrección automática, no aprobación humana.
+Cuando la cápsula incluye `automated_av_evidence_v1`, revisa las observaciones
+del proveedor y la transcripción local del máster. No declares reproducción propia:
+atribuye la evaluación audiovisual al modelo indicado y conserva sus limitaciones.
+Para las palabras exactas prioriza la transcripción local contrastada con el guion;
+un PASS del proveedor no anula discrepancias ni acredita derechos. Este modo no
+requiere las capacidades de reproducción directa del agente de texto.
 
 Modelo inicial: `gpt-5.6-sol`, razonamiento `medium`. Esta revisión es independiente de quien escribió o montó el reel. No reducir el modelo sin una evaluación comparativa aceptada.
 
