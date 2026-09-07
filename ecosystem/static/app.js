@@ -51,6 +51,7 @@
     complete: "Producción completada", completed: "Producción completada", published: "Publicación verificada",
     creative: "Preparando el contenido y las escenas", metadata: "Preparando el título y la descripción",
     segment_review: "Revisando movimiento y continuidad del plano",
+    segment_quality: "Validación independiente del plano cinematográfico",
     assets: "Preparando las imágenes y el audio", visual: "Preparando las escenas",
     release: "Comprobando la publicación", running: "Producción en curso",
     media_check: "Comprobando el vídeo terminado", cutout: "Preparando las capas de imagen",

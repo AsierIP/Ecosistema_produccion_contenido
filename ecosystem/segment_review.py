@@ -7,6 +7,33 @@ from .cache import file_hash
 from .config import read_json, write_json
 
 
+def validate_native_preflight(packet, manifest):
+    try:
+        if packet['channel']['id'] != 'religion' or packet.get('review_policy', {}).get('mode') != 'automatic':
+            raise ValueError('Native segment review belongs to Religion automatic QA only')
+        refs = {str(Path(r['path']).resolve()): r['sha256'] for r in packet['inputs']}
+        def bound(path):
+            path = Path(path).resolve()
+            if refs.get(str(path)) != file_hash(path):
+                raise ValueError('Native QA source missing or changed')
+            return path
+        video = bound(manifest['master_path'])
+        review = read_json(bound(manifest['automated_evidence']['path']))
+        if review.get('kind') != 'native_segment_observations_v1' or review['master_sha256'] != file_hash(video):
+            raise ValueError('Wrong native observations')
+        ref = review['provider_response']
+        if file_hash(bound(ref['path'])) != ref['sha256']:
+            raise ValueError('Provider response changed')
+        technical = read_json(bound(manifest['technical_evidence']['path']))
+        if technical.get('status') != 'TECHNICAL_PASS' or technical.get('master_sha256') != file_hash(video):
+            raise ValueError('Native technical evidence missing')
+        if not isinstance(manifest.get('unit_id'), str) or not manifest['unit_id'].startswith('native:'):
+            raise ValueError('Missing native review unit')
+    except (KeyError, TypeError, ValueError, OSError) as exc:
+        return [str(exc)]
+    return []
+
+
 def run_segment_review(request_path, output, *, root):
     request = read_json(Path(request_path))
     if request.get('kind') != 'segment_review_request_v1' or request.get('channel_id') != 'religion':

@@ -19,6 +19,7 @@ from .config import read_json, write_json
 
 ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate", "release", "captions", "av_review"}
 ADAPTERS.add('segment_review')
+ADAPTERS.add('segment_quality')
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -225,9 +226,9 @@ def execute_step(root, step):
             from .public_check import run_public_check
             result = run_public_check(root, step)
             return result, 'accepted' if result['status'] == 'ACCEPTED' else 'uncertain'
-    if adapter in {"creative", "metadata", "quality", "visual", "release"}:
+    if adapter in {"creative", "metadata", "quality", "visual", "release", "segment_quality"}:
         from .worker import run_stage
-        result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
+        result = run_stage(plan["job_id"], 'quality' if adapter == 'segment_quality' else adapter, paths, root=root, execute=True)
         accepted = result.get("status") == "ACCEPTED" or (result.get("status") == "ALREADY_RECORDED" and result.get("run", {}).get("state") == "accepted")
         if adapter == 'release' and accepted:
             # The controller persists accepted first, then resumes this handoff

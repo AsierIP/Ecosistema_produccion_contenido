@@ -102,6 +102,7 @@ def preparation_readiness(channel, local, adapter):
     """
     allowed = {"creative", "metadata", "quality", "ambient", "cutout", "media_check", "visual", "voice", "voice_generate", "release", "captions", "av_review"}
     allowed.add('segment_review')
+    allowed.add('segment_quality')
     if adapter not in allowed:
         return ["La etapa no admite ejecución preparatoria"]
     errors = channel_errors(channel)

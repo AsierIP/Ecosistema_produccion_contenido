@@ -1,5 +1,20 @@
 # Etapa quality
 
+Si `quality_preflight_v1.scope` es `native_segment`, revisas un segmento SILENCIOSO
+de Religion pro v5, no el máster final. Aplica la skill de quality pro v5 y el
+esquema aportados como entradas. Usa las observaciones audiovisuales automáticas
+ligadas al MP4, declara sus limitaciones y comprueba las métricas y fotogramas
+exigidos. No inventes índices de fotogramas a partir de rangos ambiguos del
+proveedor. No exijas voz ni subtítulos a este material nativo ni produzcas qa.json
+de máster. Entrega `native-selection.json` con aceptación o rechazo del candidato,
+observaciones y todos los vínculos requeridos para `native_first_frame`,
+`native_last_frame` y el recibo visual pro v5. Solo escribe dentro de la salida.
+Un PASS del proveedor no sustituye tu juicio independiente. Si la evidencia es
+insuficiente, devuelve BLOCK con la carencia concreta. No explores proyectos ni
+busques otras herramientas: usa exclusivamente los artefactos declarados y las
+herramientas locales indicadas. El resto de las reglas de QA final se aplica solo
+cuando el scope no es native_segment.
+
 La política vigente del usuario es revisión automática, sin revisión humana ni
 aprobación previa. Usa `review_method=automated-audiovisual-review` y registra qué
 observaste realmente y las limitaciones del muestreo. La revisión del usuario

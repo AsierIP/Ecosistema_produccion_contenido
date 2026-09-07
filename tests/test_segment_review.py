@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 from ecosystem.config import write_json
 from ecosystem.cache import file_hash
-from ecosystem.segment_review import run_segment_review
+from ecosystem.segment_review import run_segment_review, validate_native_preflight
 
 
 class SegmentReviewTests(unittest.TestCase):
@@ -32,6 +32,16 @@ class SegmentReviewTests(unittest.TestCase):
                 self.assertEqual(result['status'], 'EVIDENCE_READY')
                 self.assertTrue(result['independent_quality_pending'])
                 remote.assert_not_called()
+                technical = root / 'technical.json'
+                write_json(technical, {'status': 'TECHNICAL_PASS', 'master_sha256': file_hash(video)})
+                quality_paths = [video, Path(result['path']), provider / 'response.json', technical]
+                packet = {'channel': {'id': 'religion'}, 'review_policy': {'mode': 'automatic'},
+                          'inputs': [{'path': str(p), 'sha256': file_hash(p)} for p in quality_paths]}
+                preflight = {'master_path': str(video), 'unit_id': 'native:s01:c01',
+                             'automated_evidence': {'path': result['path']}, 'technical_evidence': {'path': str(technical)}}
+                self.assertEqual(validate_native_preflight(packet, preflight), [])
+                packet['channel']['id'] = 'sabias-que'
+                self.assertTrue(validate_native_preflight(packet, preflight))
                 video.write_bytes(b'replacement')
                 with self.assertRaisesRegex(ValueError, 'input changed'):
                     run_segment_review(request, root / 'out', root=root)

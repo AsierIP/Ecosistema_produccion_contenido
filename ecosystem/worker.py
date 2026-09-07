@@ -71,6 +71,9 @@ def quality_preflight(packet):
     if len(manifests) != 1:
         return ["Falta un manifiesto quality_preflight_v1 único"]
     manifest = manifests[0]
+    if manifest.get('scope') == 'native_segment':
+        from .segment_review import validate_native_preflight
+        return validate_native_preflight(packet, manifest)
     errors = []
     capabilities = manifest.get("capabilities", {})
     if not isinstance(capabilities, dict):
@@ -174,6 +177,12 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         preflight_errors = quality_preflight(read_json(Path(packet["packet_path"])))
         if preflight_errors:
             return {"status": "BLOCKED", "reason": "QA preflight", "errors": preflight_errors, "agent_started": False}
+        for artifact in artifacts:
+            p = Path(artifact)
+            if p.suffix == '.json' and p.stat().st_size < 100000:
+                value = read_json(p)
+                if isinstance(value, dict) and value.get('kind') == 'quality_preflight_v1' and value.get('scope') == 'native_segment':
+                    unit_id = value['unit_id']
     limits = read_json(root / "config/models.json").get("runner_limits", {})
     configured_timeout = limits.get("timeout_seconds_by_role", {}).get(role, 300)
     timeout = min(timeout, configured_timeout) if timeout is not None else configured_timeout
