@@ -197,6 +197,19 @@ elegibilidad editorial: el agente debe rechazar índices, portadas y pasajes sin
 contexto suficiente. Falta conectar automáticamente todos los artefactos del
 guion con sus escenas y el montaje; este arranque no acredita un reel completo.
 
+`production-brief.json` establece el intercambio entre guion y medios: título,
+narración literal, referencias y storyboard con IDs estables. Un guion aceptado
+prepara `voice_generate`; su audio técnicamente válido determina cuántas imágenes
+requieren los intervalos de cinco segundos del canal cómic. Se seleccionan planos
+a lo largo de todo el storyboard, sin generar los sobrantes. Si faltan propuestas
+visuales, se informa del bloqueo en lugar de repetir imágenes o estirar el audio.
+La distribución inicial es editorial aproximada; aún requiere verificación de
+sincronía y semántica antes de publicación. Los enlaces se reconstruyen tras una
+interrupción parcial. Los errores se registran por trabajo y no detienen los
+demás canales. Los recibos antiguos sin ese formato no se migran por inferencia.
+Vibes conserva su adaptador pendiente, y falta enlazar las imágenes aceptadas con
+animación, subtítulos y montaje finales.
+
 La etapa `voice_generate` está conectada al ejecutor y usa el generador Google
 recuperado en `scripts/providers/`, sin modificar ni ejecutar código del proyecto
 histórico. Envía un solo texto y una sola voz por petición; no reintenta errores.

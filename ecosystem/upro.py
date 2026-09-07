@@ -159,9 +159,10 @@ class Controller:
                 self.active = {k: v for k, v in self.active.items() if not v["future"].done()}
                 if self.controls["paused"] or self.stopping:
                     return
-                from .workflow import seed_ready_jobs
+                from .workflow import seed_ready_jobs, advance_production
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
+                advance_production(self.root, self.queue)
                 self.queue.advance_completed_renders()
                 steps = self.queue.list()
                 active_channels = {v["channel"] for v in self.active.values()}
@@ -229,6 +230,11 @@ class Controller:
                     tasks = [s for s in steps if s["job_id"] == c["job_id"]]
                     activation_blockers = list(c["blockers"])
                     blockers = []
+                    handoff_dir = self.root / '.runtime/jobs' / c['job_id'] / 'handoffs'
+                    for error_file in handoff_dir.glob('error-*.json'):
+                        handoff_error = read_json(error_file)
+                        if handoff_error.get('status') == 'blocked':
+                            blockers.append(handoff_error.get('reason', 'No se pudo preparar la siguiente etapa'))
                     if any(s["state"] == "uncertain" for s in tasks):
                         blockers.append("Una etapa quedó interrumpida o incierta; requiere reconciliación.")
                     if any(s["state"] == "blocked" for s in tasks):
