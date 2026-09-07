@@ -27,7 +27,7 @@ def release_request(packet):
     if (channel['lifecycle'] == 'paused' or platform.get('enabled') is not True
             or not isinstance(account, str) or not re.fullmatch(r'UC[A-Za-z0-9_-]{22}', account)
             or request.get('channel_id') != channel['id'] or request.get('expected_account_id') != account
-            or request.get('action') not in {'upload', 'schedule'}):
+            or request.get('action') not in {'upload', 'schedule', 'verify_public'}):
         raise ValueError('Invalid operation, inactive channel or mismatched YouTube identity')
     policy = packet.get('youtube_release', {})
     if policy.get('upload_visibility') != 'private' or policy.get('publish_delay_seconds') != 7200:
@@ -65,6 +65,15 @@ def start_operation(packet, root):
             intent = prepare_youtube_schedule(store, request['upload_intent_id'], root=root)
             if intent['job_id'] != packet['job_id'] or intent['master_sha256'] != request['master_sha256']:
                 raise ValueError('Schedule belongs to another job or master')
+            if request['action'] == 'verify_public':
+                if intent['state'] != 'verified':
+                    raise ValueError('Remote scheduling must be verified first')
+                target = datetime.fromisoformat(intent['payload']['publishAt'].replace('Z', '+00:00'))
+                if datetime.now(timezone.utc) < target:
+                    raise ValueError('Public verification is not due yet')
+                intent = store.prepare_intent(packet['job_id'], 'youtube', 'publish', request['master_sha256'], {
+                    'expected_account_id': request['expected_account_id'],
+                    'video_id': intent['payload']['video_id'], 'read_only_verification': True})
         if intent['state'] == 'verified':
             raise ValueError('Operation already verified; reuse it without starting an agent')
         operation = {**intent, 'only_authorized_action': request['action'],
@@ -84,7 +93,21 @@ def finish_operation(packet, root, intent):
                 or not re.fullmatch(r'[A-Za-z0-9_-]{11}', str(evidence.get('video_id', '')))):
             raise QualityError('Private upload receipt lacks exact identity or completion evidence')
     with Store(root / '.runtime/production.sqlite3') as store:
+        if intent['action'] == 'publish' and evidence.get('url') != 'https://www.youtube.com/shorts/' + intent['payload']['video_id']:
+            raise QualityError('Public verification belongs to another video')
         verified = store.reconcile_intent(intent['id'], intent['version'], 'verified', evidence)
         if intent['action'] == 'upload':
             prepare_youtube_schedule(store, intent['id'], root=root)
+        elif intent['action'] == 'publish':
+            request = release_request(packet)
+            settings = read_json(root / 'config/ecosystem.json')
+            platforms = [p for p in settings['active_platforms'] if packet['channel']['platforms'].get(p, {}).get('enabled')]
+            receipts = {i['platform']: i['evidence'] for i in store.list_intents(packet['job_id'])
+                        if i['action'] == 'publish' and i['state'] == 'verified'}
+            if platforms and all(p in receipts for p in platforms):
+                accounts = {p: packet['channel']['platforms'][p].get('channel_id', packet['channel']['platforms'][p]['account']) for p in platforms}
+                job = store.get_job(packet['job_id'])
+                profile = {**packet['profile'], 'voice_speed_factor': packet['channel']['voice'].get('speed_factor', 1.0)}
+                store.complete_job(job['id'], job['version'], read_json(Path(request['qa_path'])), receipts,
+                                   request['master_path'], accounts, profile, platforms=platforms)
     return verified

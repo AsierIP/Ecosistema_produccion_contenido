@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+from datetime import datetime
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -54,6 +56,9 @@ class Queue:
         if not job or job["state"] == "complete" or job["channel_id"] != plan.get("channel_id"):
             raise ValueError("Trabajo inexistente, terminado o de otro canal")
         mode = plan.get("mode", "production")
+        due = plan.get('not_before', 0)
+        if not isinstance(due, (int, float)) or isinstance(due, bool) or not math.isfinite(due) or due < 0:
+            raise ValueError('Invalid deferred execution timestamp')
         if mode not in {"production", "validation", "canary"} or (mode == "validation" and plan["adapter"] != "media_check"):
             raise ValueError("Antes de la migración solo se admite inspección de medios sin efectos externos")
         if mode == "canary" and not canary_authorized(self.root, plan):
@@ -133,6 +138,8 @@ class Queue:
             if not row or row["state"] != "queued":
                 return False
             plan = json.loads(row["payload"])
+            if plan.get('not_before', 0) > time.time():
+                return False
             if con.execute("SELECT 1 FROM steps WHERE channel_id=? AND state IN ('running','uncertain')", (row["channel_id"],)).fetchone():
                 return False
             for dep in plan["depends_on"]:
@@ -198,16 +205,21 @@ def execute_step(root, step):
             receipt_path = Path(result.get('receipt_path') or result['run']['receipt_path'])
             packet = read_json(receipt_path.parent / 'packet.json')
             request = release_request(packet)
-            if request['action'] == 'upload':
+            if request['action'] in {'upload', 'schedule'}:
                 with Store(root / '.runtime/production.sqlite3') as store:
                     upload = next(i for i in store.list_intents(plan['job_id'])
                                   if i['platform'] == 'youtube' and i['action'] == 'upload' and i['state'] == 'verified')
-                request_path = out / 'schedule-request.json'
+                    schedule = next(i for i in store.list_intents(plan['job_id'])
+                                    if i['platform'] == 'youtube' and i['action'] == 'schedule')
+                next_action = 'schedule' if request['action'] == 'upload' else 'verify_public'
+                request_path = out / (next_action + '-request.json')
                 request.pop('metadata', None)
-                write_json(request_path, {**request, 'action': 'schedule', 'upload_intent_id': upload['id']})
+                write_json(request_path, {**request, 'action': next_action, 'upload_intent_id': upload['id']})
                 inputs = [request_path] + [Path(request[k]) for k in ('master_path', 'qa_path', 'metadata_path')]
                 followup = {**plan, 'inputs': [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in inputs],
                             'depends_on': [step['id']]}
+                if next_action == 'verify_public':
+                    followup['not_before'] = datetime.fromisoformat(schedule['payload']['publishAt'].replace('Z', '+00:00')).timestamp() + 30
                 result['next_step'] = Queue(root).register(followup)
     elif adapter == 'voice_generate':
         from .voice_generate import generate_voice

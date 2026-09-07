@@ -176,6 +176,15 @@ y repetición de intentos: no son evidencia de una subida real. Falta probar amb
 operaciones con un máster que haya superado la revisión independiente completa,
 y conectar la verificación pública posterior a la fecha programada.
 
+La fase `verify_public` ya se encadena desde la programación verificada, con
+`not_before` persistente hasta 30 segundos después de `publishAt`. El agente solo
+consulta el vídeo; no pulsa Publicar. Una URL pública verificada cierra el trabajo
+si todas las plataformas activas del canal tienen sus recibos y el QA sigue
+vinculado al máster. El contrato antiguo sigue exigiendo ambas plataformas por
+defecto; Upro transmite explícitamente su alcance activo. Las pruebas de reloj,
+reinicio y cierre YouTube-only usan evidencias simuladas; falta la comprobación
+real de todo el ciclo. El panel distingue la espera programada de una cola normal.
+
 ## Consumo y calidad
 
 La etapa `voice_generate` está conectada al ejecutor y usa el generador Google

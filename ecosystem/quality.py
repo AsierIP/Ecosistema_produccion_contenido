@@ -236,7 +236,7 @@ def validate_publication_receipt(receipt, platform, master_sha256, expected_acco
     return errors
 
 
-def validate_publications(package, master_path, expected_accounts):
+def validate_publications(package, master_path, expected_accounts, platforms=PLATFORMS):
     """Require public verification of YouTube and TikTok for the same master."""
     errors = []
     actual = _artifact_hash(master_path, errors, "master")
@@ -244,7 +244,9 @@ def validate_publications(package, master_path, expected_accounts):
         return errors + ["publications package must be an object"]
     if not isinstance(expected_accounts, dict):
         return errors + ["expected platform accounts must be configured"]
-    for platform in PLATFORMS:
+    if not platforms or len(set(platforms)) != len(platforms) or any(p not in PLATFORMS for p in platforms):
+        return errors + ['Explicit nonempty supported publication scope is required']
+    for platform in platforms:
         errors.extend(validate_publication_receipt(
             package.get(platform), platform, actual, expected_accounts.get(platform)
         ))

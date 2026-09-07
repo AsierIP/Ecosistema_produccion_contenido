@@ -17,6 +17,12 @@ Si la fecha ha vencido, bloquear y reconciliar; nunca programar una fecha pasada
 En ambos casos incluir ese JSON en los artefactos del recibo estructurado.
 Un ACCEPT acredita solamente la operación reservada, nunca publicación pública.
 Estas instrucciones específicas limitan las reglas generales siguientes.
+Para `verify_public`, hacer únicamente una comprobación de lectura del vídeo
+guardado en el intent. No subir, programar ni pulsar Publicar. Acreditar URL
+pública canónica de ese ID, cuenta exacta y correspondencia con el máster.
+No confundir verlo con una sesión propietaria con acceso público. Registrar
+`account_id`, `url`, `master_sha256`, `public_verified=true` y evidencia real de
+acceso público en `youtube-result.json`. Si aún no es público, devolver BLOCK.
 
 ## YouTube: regla común para todos los canales
 

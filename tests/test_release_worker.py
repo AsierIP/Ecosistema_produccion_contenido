@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from unittest.mock import patch
 from pathlib import Path
 import tempfile
 import unittest
@@ -33,7 +34,8 @@ class ReleaseWorkerTests(unittest.TestCase):
         with Store(self.root / '.runtime/production.sqlite3') as store:
             self.job = store.enqueue_job('sabias-que', '2026-09-07')
         write_json(self.root / 'config/ecosystem.json', {'youtube_release': {
-            'upload_visibility': 'private', 'delay_anchor': 'upload_completed_at', 'publish_delay_seconds': 7200}})
+            'upload_visibility': 'private', 'delay_anchor': 'upload_completed_at', 'publish_delay_seconds': 7200},
+            'active_platforms': ['youtube']})
         self.packet = {'job_id': self.job['id'], 'channel': self.channel, 'profile': {},
                        'youtube_release': {'upload_visibility': 'private', 'publish_delay_seconds': 7200},
                        'output_directory': str(self.root / 'out'),
@@ -75,3 +77,29 @@ class ReleaseWorkerTests(unittest.TestCase):
                    'upload_completed_at': datetime.now(timezone.utc).isoformat()})
         with self.assertRaises(QualityError):
             finish_operation(self.packet, self.root, intent)
+
+    def test_verified_youtube_closes_youtube_only_job_after_schedule(self):
+        self.test_upload_receipt_prepares_schedule_without_claiming_publication()
+        with Store(self.root / '.runtime/production.sqlite3') as store:
+            upload = next(i for i in store.list_intents() if i['action'] == 'upload')
+            schedule = next(i for i in store.list_intents() if i['action'] == 'schedule')
+            schedule = store.start_intent(schedule['id'], schedule['version'])
+            store.reconcile_intent(schedule['id'], schedule['version'], 'verified', {
+                'master_sha256': file_hash(self.master), 'account_id': self.account, 'video_id': 'abcdefghijk',
+                'privacyStatus': 'private', 'publishAt': schedule['payload']['publishAt'],
+                'scheduled': True, 'evidence': 'TEST fixture scheduling'})
+        write_json(self.request, {**self.data, 'action': 'verify_public', 'upload_intent_id': upload['id']})
+        with self.assertRaises(ValueError):
+            start_operation(self.packet, self.root)
+        future = datetime.now(timezone.utc) + timedelta(hours=3)
+        with patch('ecosystem.release_worker.datetime', wraps=datetime) as clock:
+            clock.now.return_value = future
+            intent = start_operation(self.packet, self.root)
+        self.assertTrue(intent['payload']['read_only_verification'])
+        write_json(self.root / 'out/youtube-result.json', {
+            'master_sha256': file_hash(self.master), 'account_id': self.account,
+            'url': 'https://www.youtube.com/shorts/abcdefghijk', 'public_verified': True,
+            'evidence': 'TEST fixture public reachability; not real video'})
+        finish_operation(self.packet, self.root, intent)
+        with Store(self.root / '.runtime/production.sqlite3') as store:
+            self.assertEqual(store.get_job(self.job['id'])['state'], 'complete')

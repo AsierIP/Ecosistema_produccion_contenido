@@ -389,15 +389,15 @@ class Store:
                 "verified" if outcome == "verified" else "prepared", evidence,
             )
 
-    def complete_job(self, job_id, expected_version, qa_package, publications, master_path, expected_accounts, profile=None):
+    def complete_job(self, job_id, expected_version, qa_package, publications, master_path, expected_accounts, profile=None, *, platforms=('youtube', 'tiktok')):
         """Complete only after real-master QA and both durable public verifications."""
         errors = validate_qa(qa_package, master_path, profile)
-        errors.extend(validate_publications(publications, master_path, expected_accounts))
+        errors.extend(validate_publications(publications, master_path, expected_accounts, platforms))
         if errors:
             raise QualityError("; ".join(errors))
         with self._transaction():
             intents = {intent["platform"]: intent for intent in self.list_intents(job_id) if intent["action"] == "publish"}
-            for platform in ("youtube", "tiktok"):
+            for platform in platforms:
                 intent = intents.get(platform)
                 if intent is None or intent["state"] != "verified":
                     raise QualityError(f"{platform}: a verified durable publication intent is required")

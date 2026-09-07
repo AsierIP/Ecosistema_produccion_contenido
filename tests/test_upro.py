@@ -15,6 +15,16 @@ from ecosystem.upro_queue import Queue
 
 
 class UproTests(unittest.TestCase):
+    def test_delayed_step_survives_restart_without_early_claim(self):
+        plan = {'schema_version': 1, 'job_id': self.job, 'channel_id': 'religion',
+                'adapter': 'media_check', 'mode': 'validation', 'not_before': 2000,
+                'inputs': [{'path': str(self.source), 'sha256': file_hash(self.source)}]}
+        step = self.queue.register(plan)
+        with patch('ecosystem.upro_queue.time.time', return_value=1999):
+            self.assertFalse(Queue(self.root).claim(step))
+        with patch('ecosystem.upro_queue.time.time', return_value=2000):
+            self.assertTrue(Queue(self.root).claim(step))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)

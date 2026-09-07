@@ -255,6 +255,10 @@ class Controller:
                         blockers.append('Falta conectar y validar la siguiente etapa de producción automática.')
                     enabled = self.enabled(cid)
                     state = ("reviewing" if running["adapter"] in {"media_check", "quality"} else "running") if running else "paused" if (not enabled or self.controls["paused"]) else "blocked" if blockers else "queued" if queued else "review_pending" if inspected else "complete" if c['state'] == 'complete' else "ready"
+                    if state == 'queued' and queued['payload'].get('not_before', 0) > time.time():
+                        state = 'scheduled'
+                    if c['state'] == 'complete' and not running and not blockers:
+                        state = 'complete'
                     video = self.last_video(cid, steps, intents)
                     lines.append({"id": cid, "name": c["name"], "enabled": enabled,
                                   "state": state, "stage": running["adapter"] if running else state,
