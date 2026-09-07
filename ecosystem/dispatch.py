@@ -33,12 +33,14 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     prompt = prompt_path.read_text(encoding="utf-8")
     profile_path = root / "config/profiles" / (channel["visual"]["profile"] + ".json")
     profile = read_json(profile_path)
-    fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt, "receipt_schema": read_json(root / "config/receipt.schema.json"), "runner_limits": models.get("runner_limits", {}), "validator_version": 2}, inputs=refs, model=routing)
+    release_policy = read_json(root / 'config/ecosystem.json').get('youtube_release', {})
+    fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt, "youtube_release": release_policy, "receipt_schema": read_json(root / "config/receipt.schema.json"), "runner_limits": models.get("runner_limits", {}), "validator_version": 2}, inputs=refs, model=routing)
     output = root / ".runtime/jobs" / job_id / role / fingerprint[:16]
     packet = {
         "schema_version": 1, "job_id": job_id, "job_version": job["version"],
         "channel": channel, "role": role, "stage": ROLE_STAGES[role], "model": routing,
         "profile": profile, "instructions": prompt, "inputs": refs,
+        "youtube_release": release_policy,
         "unresolved_intents": [i for i in intents if i["state"] != "verified"],
         "output_directory": str(output), "cache_key": fingerprint,
         "receipt_schema": str(root / "config/receipt.schema.json"),

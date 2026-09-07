@@ -1,5 +1,23 @@
 # Etapa release
 
+## YouTube: regla común para todos los canales
+
+La política `youtube_release` de la cápsula prevalece sobre antiguos horarios o
+peticiones de vista previa. Tras QA completo, subir automáticamente como privado,
+sin aprobación del usuario. Registrar la finalización real de la subida y fijar
+la publicación en YouTube dos horas después de ese instante (7200 segundos).
+Usar `ecosystem.release.youtube_schedule` para calcular la fecha UTC; mostrar la
+hora local de Europe/Madrid cuando Studio la solicite. Si Studio solo permite
+minutos, redondear hacia arriba: nunca acortar las dos horas.
+
+Guardar un intent separado `schedule` ligado a vídeo, cuenta, hash y fecha antes
+de confirmar la programación. Verificar en YouTube la privacidad y la fecha
+programada. Un reinicio no reinicia las dos horas ni duplica la subida. Una fecha
+ya vencida requiere reconciliar; nunca enviarla como programación nueva porque
+podría publicar de inmediato. No marcar el trabajo publicado ni completo por
+estar programado: verificar la URL pública después de la hora prevista.
+Esta regla no reactiva líneas pausadas ni omite QA, licencias o autenticación.
+
 Publicador preferente: adaptador oficial operativo. Cuando la cápsula autorice navegador porque el adaptador no esté listo: `gpt-5.6-terra`, razonamiento `low`.
 
 Lee la cápsula, el destino confirmado, la autoridad del canal/idioma, el recibo de QA independiente y el máster final. Comprueba que título, descripción, divulgación IA, licencia y hash corresponden al trabajo. Identidad ausente o dudosa implica bloqueo de esa plataforma.

@@ -111,6 +111,21 @@ ejecutar. Hay que inspeccionar evidencias y procesos antes de usar
 Esto archiva el intento; cualquier corrección necesita un plan nuevo. Tampoco se
 repite una publicación cuyo resultado aún no se haya reconciliado.
 
+## Publicación diferida en YouTube
+
+Todos los canales actuales y futuros heredan `config/ecosystem.json` →
+`youtube_release`: tras QA, subir como privado sin aprobación del usuario y
+programar en YouTube para dos horas después de completar la subida. Sustituye
+el antiguo horario fijo propuesto. La cápsula de publicación incluye esta regla
+y su caché cambia al modificarla. `ecosystem.release.youtube_schedule` calcula
+la fecha UTC y, para Studio, redondea al minuto siguiente si es necesario.
+
+Registrar por separado subida, programación y verificación pública: programado
+no significa publicado. No recalcular el plazo en cada reinicio ni enviar una
+fecha vencida. Las líneas pausadas siguen pausadas. La regla está implementada
+en la configuración, cálculo y cápsulas; la ejecución remota sigue pendiente
+de la conexión completa del publicador indicada arriba.
+
 ## Consumo y calidad
 
 La coordinación, actualización cada cinco segundos, hashes, montaje y validación

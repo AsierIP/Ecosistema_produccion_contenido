@@ -30,7 +30,7 @@ def create_channel(answers: dict, root=ROOT):
         "voice": {"provider": answers.get("voice_provider"), "id": answers.get("voice_id"), "approved": False, "retiming": False},
         "branding": {"status": "brief_pending", "brief": answers.get("branding_brief")},
         "platforms": {p: {"enabled": True, "account": answers.get(p + "_account")} for p in ("youtube", "tiktok")},
-        "release": {"mode": answers.get("release_mode", "awaiting_user_policy"), "ai_disclosure": True},
+        "release": {"mode": answers.get("release_mode", read_json(root / 'config/ecosystem.json').get('youtube_release', {}).get('mode', 'awaiting_user_policy')), "ai_disclosure": True},
         "daily_reels": 1, "migration": {"canary_passed": False, "legacy_writer_reconciled": True},
     }
     errors = channel_errors(record)
