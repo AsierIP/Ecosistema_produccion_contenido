@@ -5,10 +5,16 @@ import unittest
 from unittest.mock import patch
 from ecosystem.config import write_json
 from ecosystem.cache import file_hash
-from ecosystem.segment_review import run_segment_review, validate_native_preflight
+from ecosystem.segment_review import run_segment_review, validate_native_preflight, normalized_observation
 
 
 class SegmentReviewTests(unittest.TestCase):
+    def test_singleton_observation_is_unwrapped_but_ambiguous_arrays_fail(self):
+        self.assertEqual(normalized_observation([{'decision': 'PASS'}]), {'decision': 'PASS'})
+        for value in ([], [{'decision': 'PASS'}, {'decision': 'FAIL'}], 'PASS'):
+            with self.assertRaises(ValueError):
+                normalized_observation(value)
+
     def test_reconciles_bound_review_without_resending(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

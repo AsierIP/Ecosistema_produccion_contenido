@@ -86,6 +86,44 @@ def retry_transient_segment_review(root, step, queue):
     return new_id
 
 
+def resume_saved_segment_review(root, step, queue):
+    """Recover a completed provider response without uploading or reviewing again."""
+    if (step['adapter'] != 'segment_review' or step['state'] != 'uncertain'
+            or (step.get('result') or {}).get('error') != "'list' object has no attribute 'get'"):
+        return False
+    original = Path(step['payload']['inputs'][0]['path'])
+    request = read_json(original)
+    if request.get('prior_review') or file_hash(original) != step['payload']['inputs'][0]['sha256']:
+        return False
+    provider = Path(root) / '.runtime/upro/results' / step['id'] / 'provider'
+    intent = read_json(provider / 'intent.json')
+    if intent.get('state') != 'response_saved' or read_json(provider / 'cleanup.json').get('deleted') is not True:
+        return False
+    for source in request['inputs']:
+        if file_hash(Path(source['path'])) != source['sha256']:
+            raise ValueError('Saved review source changed')
+    value = {**request, 'prior_review': str(provider), 'inputs': [*request['inputs'],
+             *[{'path': str(provider / name), 'sha256': file_hash(provider / name)}
+               for name in ('intent.json', 'response.json', 'cleanup.json')]]}
+    path = provider.parent / 'resume-saved-review.json'
+    if path.exists() and read_json(path) != value:
+        raise ValueError('Saved review recovery changed')
+    if not path.exists():
+        write_json(path, value, exclusive=True)
+    new_id = queue.register({**step['payload'], 'inputs': [{'path': str(path), 'sha256': file_hash(path)}]})
+    queue.retire(step['id'], {'checked': True, 'reason': 'Recover completed singleton-array response locally; remote file already deleted. No second provider call.',
+                 'followup_step': new_id})
+    return new_id
+
+
+def normalized_observation(value):
+    if isinstance(value, list) and len(value) == 1 and isinstance(value[0], dict):
+        value = value[0]
+    if not isinstance(value, dict):
+        raise ValueError('Expected one structured native observation')
+    return value
+
+
 def extract_native_endpoints(video, output, sequence_id, segment_id):
     from .media import discover, probe
     metadata = probe(video)
@@ -192,7 +230,7 @@ def run_segment_review(request_path, output, *, root):
     if read_json(provider / 'cleanup.json').get('deleted') is not True:
         raise ValueError('Remote segment cleanup remains pending')
     candidate = read_json(provider / 'response.json')['candidates'][0]
-    observation = json.loads(''.join(p.get('text', '') for p in candidate['content']['parts']))
+    observation = normalized_observation(json.loads(''.join(p.get('text', '') for p in candidate['content']['parts'])))
     if candidate.get('finishReason') != 'STOP' or observation.get('decision') not in {'PASS', 'FAIL', 'UNCERTAIN'}:
         raise ValueError('Incomplete structured segment observation')
     if any(file_hash(Path(r['path'])) != r['sha256'] for r in request['inputs']):

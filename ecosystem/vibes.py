@@ -17,6 +17,19 @@ def validate_request(request):
     for source in request['inputs']:
         if file_hash(Path(source['path'])) != source['sha256']:
             raise ValueError('Vibes generation source changed')
+    if request.get('segment_id', 's01') != 's01':
+        previous = request.get('predecessor_selection')
+        if not previous or bound.get(str(Path(previous['path']).resolve())) != previous['sha256']:
+            raise ValueError('Continuation requires a bound accepted predecessor')
+        selection = read_json(Path(previous['path']))
+        frame = selection['native_last_frame']
+        if (selection.get('decision') != 'ACCEPT' or selection.get('sequence_id') != request['sequence_id']
+                or selection['segment_id'] != request['continuity_from']
+                or frame['file_sha256'].lower() != request['start_reference']['sha256']
+                or file_hash(Path(frame['path'])) != frame['file_sha256'].lower()
+                or file_hash(Path(frame['quality_receipt_path'])) != frame['quality_receipt_sha256'].lower()
+                or not frame.get('accepted_at')):
+            raise ValueError('Native continuation lost its accepted frame binding')
 
 
 def generate(request_path, output, *, root):
