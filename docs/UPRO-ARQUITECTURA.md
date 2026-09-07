@@ -169,6 +169,23 @@ todavía falta verificar la ejecución remota completa en YouTube.
 
 ## Consumo y calidad
 
+La etapa `voice_generate` está conectada al ejecutor y usa el generador Google
+recuperado en `scripts/providers/`, sin modificar ni ejecutar código del proyecto
+histórico. Envía un solo texto y una sola voz por petición; no reintenta errores.
+Antes de enviar persiste un intent y ocupa el recurso remoto. Tras una respuesta
+válida encadena `voice` para comprobar procedencia y aplicar el ritmo aprobado.
+La configuración real del script pasó `ValidateOnly` en Windows, sin lectura de
+credenciales ni llamada de red. Todavía no se ha probado una generación nueva
+mediante esta conexión.
+
+Con presupuesto adicional cero, necesita evidencia reciente (máximo 24 horas) en
+`.runtime/providers/google-tts-free-tier.json`: modelo, fecha de comprobación,
+facturación desactivada, vínculo verificado entre proyecto y credencial,
+ruta/hash del registro DPAPI configurado y evidencia de la comprobación. No
+contiene la clave. Ver proyectos gratuitos en Studio no prueba por sí solo ese
+vínculo; no inventar `credential_project_verified=true`. Falta automatizar esta
+comprobación para que su caducidad no requiera intervención en producción diaria.
+
 La etapa `voice` consume una petición `voice_from_provider_v1` con canal, texto
 canónico y manifiesto Google ligado por hash. Reutiliza únicamente el audio
 original cuya voz, idioma, texto y hash coinciden. Conserva velocidad natural en

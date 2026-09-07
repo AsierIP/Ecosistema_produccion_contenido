@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruebas de voz · LUMEN</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #070a0f;
+      --panel: #111722;
+      --panel-2: #182131;
+      --text: #f6f0e4;
+      --muted: #9aa7b8;
+      --line: #2a3547;
+      --gold: #e7bf73;
+      --green: #65d69a;
+      --red: #f47f82;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 85% 0%, #263044 0, transparent 30rem),
+        linear-gradient(160deg, #090d14, var(--bg) 55%);
+      color: var(--text);
+      font: 16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { width: min(1060px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+    .eyebrow { color: var(--gold); letter-spacing: .18em; text-transform: uppercase; font-size: .76rem; }
+    h1 { margin: 8px 0 4px; font: 600 clamp(2rem, 5vw, 4.4rem)/1.02 Georgia, serif; }
+    .subtitle { margin: 0; color: var(--muted); }
+    .brief {
+      margin: 30px 0;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
+      box-shadow: 0 20px 70px #0007;
+    }
+    .brief strong { color: var(--gold); }
+    .brief p { margin: 7px 0; }
+    .notice { color: var(--muted); font-size: .9rem; }
+    .grid { display: grid; gap: 16px; }
+    .card {
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      gap: 18px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--panel), #0e141e);
+      transition: border-color .18s ease, transform .18s ease;
+    }
+    .card.playing { border-color: var(--gold); transform: translateY(-2px); }
+    .number {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: var(--panel-2);
+      color: var(--gold);
+      font: 600 1.4rem Georgia, serif;
+    }
+    .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+    .voice { margin: 0; font-size: 1.24rem; }
+    .tag {
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .provider { color: var(--muted); font-size: .84rem; }
+    .spoken { margin: 10px 0 0; color: var(--muted); font-size: .86rem; }
+    .spoken strong { color: var(--text); }
+    .play {
+      width: 100%;
+      margin: 14px 0 8px;
+      border: 1px solid #d9b967;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #d9b967, #a77a22);
+      color: #111;
+      padding: 12px 16px;
+      font: 700 1rem/1.2 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .play:hover { filter: brightness(1.08); }
+    .play:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    audio { width: 100%; margin: 0 0 12px; accent-color: var(--gold); }
+    .decision { display: grid; grid-template-columns: minmax(170px, .42fr) 1fr; gap: 10px; }
+    select, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0a0f17;
+      color: var(--text);
+      padding: 10px 12px;
+      font: inherit;
+    }
+    select[data-value="finalista"], select[data-value="ganadora"] { border-color: var(--green); }
+    select[data-value="descartar"] { border-color: var(--red); }
+    footer { margin-top: 26px; color: var(--muted); font-size: .86rem; }
+    kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; color: var(--text); }
+    @media (max-width: 650px) {
+      main { width: min(100% - 20px, 1060px); padding-top: 28px; }
+      .card { grid-template-columns: 48px minmax(0, 1fr); padding: 15px; gap: 12px; }
+      .number { width: 44px; height: 44px; border-radius: 12px; }
+      .decision { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">LUMEN · Cata de voces</div>
+    <h1 id="title">Pruebas de voz</h1>
+    <p class="subtitle" id="subtitle"></p>
+
+    <section class="brief">
+      <p><strong>Texto solicitado común:</strong> <span id="transcript"></span></p>
+      <p><strong>Misma dirección:</strong> <span id="direction"></span></p>
+      <p class="notice">Los audios ya están generados. Esta página local solo reproduce archivos de audio; no sintetiza ni utiliza voces del navegador o del sistema. El texto común es el solicitado a cada proveedor, no una transcripción verificada de lo que se oye.</p>
+    </section>
+
+    <section class="grid" id="cards" aria-label="Muestras de voz"></section>
+    <footer>
+      Atajos: <kbd>1</kbd>–<kbd>9</kbd> reproduce cada muestra. Al iniciar una voz se detienen las demás. Tus decisiones y notas se guardan solo en este equipo.
+    </footer>
+  </main>
+
+  <script src="auditions-data.js"></script>
+  <script>
+    (() => {
+      const data = window.AUDITION_DATA;
+      if (!data || !Array.isArray(data.samples)) {
+        document.querySelector("#cards").textContent = "No se encontró el lote de audiciones.";
+        return;
+      }
+
+      document.title = `${data.title} · LUMEN`;
+      document.querySelector("#title").textContent = data.title;
+      document.querySelector("#subtitle").textContent = data.subtitle || "";
+      document.querySelector("#transcript").textContent = data.transcript;
+      document.querySelector("#direction").textContent = data.direction_summary;
+
+      const storageKey = `lumen-voice-audition:${data.batch_id || location.pathname}`;
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem(storageKey) || "{}"); } catch (_) {}
+
+      const cards = document.querySelector("#cards");
+      const audios = [];
+
+      data.samples.forEach((sample, index) => {
+        const card = document.createElement("article");
+        card.className = "card";
+        const sampleKey = `${sample.provider}|${sample.model}|${sample.voice}`;
+        const state = saved[sampleKey] || {};
+        card.innerHTML = `
+          <div class="number">${String(index + 1).padStart(2, "0")}</div>
+          <div>
+            <div class="meta">
+              <h2 class="voice">${sample.voice}</h2>
+              <span class="tag">${sample.descriptor || "Sin descriptor"}</span>
+              <span class="provider">${sample.provider} · ${sample.model}</span>
+            </div>
+            <button class="play" type="button">Escuchar voz ${index + 1}</button>
+            <audio controls preload="metadata" src="${sample.file}"></audio>
+            <div class="decision">
+              <select aria-label="Decisión para ${sample.voice}">
+                <option value="">Sin valorar</option>
+                <option value="finalista">Finalista</option>
+                <option value="ganadora">Ganadora provisional</option>
+                <option value="descartar">Descartar</option>
+              </select>
+              <input aria-label="Notas para ${sample.voice}" placeholder="Notas: grave, natural, ritmo, pronunciación…" value="">
+            </div>
+          </div>`;
+
+        const audio = card.querySelector("audio");
+        const playButton = card.querySelector(".play");
+        const select = card.querySelector("select");
+        const notes = card.querySelector("input");
+        if (sample.preview_text && sample.preview_text !== data.transcript) {
+          const spoken = document.createElement("p");
+          spoken.className = "spoken";
+          const label = document.createElement("strong");
+          label.textContent = "previewText devuelto por el proveedor: ";
+          spoken.append(label, document.createTextNode(sample.preview_text));
+          audio.before(spoken);
+        }
+        select.value = state.decision || "";
+        select.dataset.value = select.value;
+        notes.value = state.notes || "";
+
+        const save = () => {
+          saved[sampleKey] = { decision: select.value, notes: notes.value };
+          select.dataset.value = select.value;
+          localStorage.setItem(storageKey, JSON.stringify(saved));
+        };
+        select.addEventListener("change", save);
+        notes.addEventListener("input", save);
+        playButton.addEventListener("click", () => {
+          if (audio.paused) audio.play(); else audio.pause();
+        });
+        audio.addEventListener("play", () => {
+          audios.forEach(other => {
+            if (other !== audio) {
+              other.pause();
+              other.closest(".card")?.classList.remove("playing");
+            }
+          });
+          card.classList.add("playing");
+          playButton.textContent = `Pausar voz ${index + 1}`;
+        });
+        audio.addEventListener("pause", () => {
+          card.classList.remove("playing");
+          playButton.textContent = `Escuchar voz ${index + 1}`;
+        });
+        audio.addEventListener("ended", () => {
+          card.classList.remove("playing");
+          playButton.textContent = `Escuchar voz ${index + 1}`;
+        });
+
+        audios.push(audio);
+        cards.appendChild(card);
+      });
+
+      document.addEventListener("keydown", event => {
+        if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || "")) return;
+        const number = Number(event.key);
+        if (!Number.isInteger(number) || number < 1 || number > audios.length) return;
+        const audio = audios[number - 1];
+        if (audio.paused) audio.play(); else audio.pause();
+      });
+    })();
+  </script>
+</body>
+</html>

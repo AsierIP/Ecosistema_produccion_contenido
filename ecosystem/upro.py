@@ -24,7 +24,9 @@ from .worker import usage_report
 STATIC = Path(__file__).resolve().parent / "static"
 STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y descripción",
                 "quality": "Revisión independiente", "media_check": "Inspección del vídeo",
-                "cutout": "Montaje del cómic", "ambient": "Animación de escenas"}
+                "cutout": "Montaje del cómic", "ambient": "Animación de escenas",
+                "voice": "Preparación de la voz", "voice_generate": "Generación de la narración",
+                "visual": "Creación de imágenes"}
 
 
 def now():

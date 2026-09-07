@@ -16,7 +16,7 @@ import time
 from .cache import file_hash
 from .config import read_json, write_json
 
-ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice"}
+ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient", "visual", "voice", "voice_generate"}
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
@@ -192,6 +192,21 @@ def execute_step(root, step):
         from .worker import run_stage
         result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
         accepted = result.get("status") == "ACCEPTED" or (result.get("status") == "ALREADY_RECORDED" and result.get("run", {}).get("state") == "accepted")
+    elif adapter == 'voice_generate':
+        from .voice_generate import generate_voice
+        from .store import Store
+        if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
+            raise ValueError('La narración debe corresponder al canal de la etapa')
+        with Store(root / '.runtime/production.sqlite3') as store:
+            owner = 'voice:' + step['id']
+            lease = store.claim_lease('remote', owner, 300)
+            if not lease:
+                raise ValueError('El proveedor remoto está ocupado')
+            try:
+                result = generate_voice(paths[0], out, root=root)
+            finally:
+                store.release_lease('remote', owner, lease['token'])
+        accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == 'voice':
         from .voice import prepare_voice
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
