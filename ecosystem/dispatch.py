@@ -33,6 +33,9 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     prompt = prompt_path.read_text(encoding="utf-8")
     profile_path = root / "config/profiles" / (channel["visual"]["profile"] + ".json")
     profile = read_json(profile_path)
+    # Channel-approved narration speed overrides the shared profile's default.
+    # Keep the same effective profile in review and release validation.
+    profile = {**profile, 'voice_speed_factor': channel['voice'].get('speed_factor', 1.0)}
     release_policy = read_json(root / 'config/ecosystem.json').get('youtube_release', {})
     review_path = root / 'config/review.json'
     review_policy = read_json(review_path) if review_path.exists() else {}
