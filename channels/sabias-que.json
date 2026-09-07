@@ -6,11 +6,12 @@
   "lifecycle": "discovery",
   "language": "es-ES",
   "theme": "Curiosidades verificables",
-  "audience": null,
+  "audience": "Público general hispanohablante interesado en curiosidades verificables",
   "sources": [{"id": "doval-enciclopedia-curiosidades-1994", "title": "Enciclopedia de las curiosidades: El libro de los hechos insólitos", "author": "Gregorio Doval", "kind": "local_pdf", "locator_required": true, "redistribute": false}],
   "editorial_policy": "separate_claim_source_evidence_script_adaptation_on_screen_text",
   "fact_check_required": true,
   "visual": {
+    "generation_provider": "imagegen",
     "style": "Cartoon 2D exagerado B2; colores propios de cada elemento, eléctricos y contrastados",
     "approved": true,
     "approval_scope": "visual_direction_and_selected_style_frame",
@@ -39,7 +40,9 @@
       "name": "¿Sábias qué...?",
       "url": "https://www.youtube.com/@sabias-quecuriosidad",
       "channel_id": "UCncJKa6KarbqIYuJoQfjSzQ",
-      "verification_status": "live_session_verified_2026-09-06"
+      "verification_status": "verified",
+      "verification_date": "2026-09-07",
+      "verification_scope": "session_observed_in_youtube_studio; recheck_before_publication"
     },
     "tiktok": {"enabled": true, "account": null, "handle": null}
   },

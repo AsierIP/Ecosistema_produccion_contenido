@@ -15,10 +15,10 @@ import time
 from urllib.parse import urlsplit
 import webbrowser
 
-from .config import ROOT, load_channels, read_json, write_json
+from .config import ROOT, load_channels, read_json, write_json, preparation_readiness
 from .planner import plan_daily
 from .store import Store
-from .upro_queue import Queue, GPU_ADAPTERS, execute_step
+from .upro_queue import Queue, GPU_ADAPTERS, execute_step, canary_authorized
 from .worker import usage_report
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -79,11 +79,27 @@ class Controller:
         self.pool = ThreadPoolExecutor(max_workers=self.max_workers, thread_name_prefix="upro")
         self.active = {}
         self.plan = {"channels": []}
-        self.activity = []
+        self.activity = self.load_activity()
         self.last_error = None
         self.stopping = False
         self.token = secrets.token_urlsafe(32)
         self.thread = None
+
+    def load_activity(self):
+        path = self.runtime / 'activity.jsonl'
+        if not path.exists():
+            return []
+        from collections import deque
+        result = []
+        with path.open(encoding='utf-8', errors='replace') as stream:
+            for line in deque(stream, maxlen=60):
+                try:
+                    item = json.loads(line)
+                    if isinstance(item, dict) and isinstance(item.get('message'), str):
+                        result.append(item)
+                except ValueError:
+                    continue
+        return result
 
     def event(self, message, level="info", line_id=None):
         item = {"message": message, "level": level, "line_id": line_id, "created_at": now()}
@@ -141,6 +157,7 @@ class Controller:
                 self.active = {k: v for k, v in self.active.items() if not v["future"].done()}
                 if self.controls["paused"] or self.stopping:
                     return
+                self.queue.advance_completed_renders()
                 steps = self.queue.list()
                 active_channels = {v["channel"] for v in self.active.values()}
                 gpu_active = any(v["adapter"] in GPU_ADAPTERS for v in self.active.values())
@@ -160,6 +177,12 @@ class Controller:
                     for step in relevant:
                         if step["state"] != "queued" or (step["mode"] == "production" and not channel["ready"]):
                             continue
+                        if step["mode"] == "canary":
+                            profile = next(c for c in load_channels(self.root) if c["id"] == cid)
+                            local_path = self.root / "local.json"
+                            local = read_json(local_path) if local_path.exists() else {}
+                            if not canary_authorized(self.root, step["payload"]) or preparation_readiness(profile, local, step["adapter"]):
+                                continue
                         if step["adapter"] in GPU_ADAPTERS and (gpu_busy or gpu_active):
                             continue
                         if not self.queue.claim(step["id"]):
@@ -199,22 +222,36 @@ class Controller:
                 for c in self.plan["channels"]:
                     cid = c["channel_id"]
                     tasks = [s for s in steps if s["job_id"] == c["job_id"]]
-                    blockers = list(c["blockers"])
+                    activation_blockers = list(c["blockers"])
+                    blockers = []
                     if any(s["state"] == "uncertain" for s in tasks):
                         blockers.append("Una etapa quedó interrumpida o incierta; requiere reconciliación.")
                     if any(s["state"] == "blocked" for s in tasks):
                         blockers.append("Una etapa no superó la validación; revisar antes de repetir.")
                     if any(i["job_id"] == c["job_id"] and i["state"] in {"sending", "uncertain"} for i in intents):
                         blockers.append("Publicación incierta pendiente de reconciliar.")
-                    if not any(s["state"] == "queued" and s["mode"] == "production" for s in tasks) and c["state"] != "complete":
-                        blockers.append("Falta conectar y validar la siguiente etapa de producción automática.")
                     running = next((s for s in tasks if s["state"] == "running"), None)
+                    queued = next((s for s in tasks if s['state'] == 'queued'), None)
+                    inspected = any(s['adapter'] == 'media_check' and s['state'] == 'accepted' for s in tasks)
+                    if queued:
+                        if queued['mode'] == 'production':
+                            blockers.extend(activation_blockers)
+                        elif queued['mode'] == 'canary':
+                            profile = next(p for p in load_channels(self.root) if p['id'] == cid)
+                            local_path = self.root / 'local.json'
+                            local = read_json(local_path) if local_path.exists() else {}
+                            blockers.extend(preparation_readiness(profile, local, queued['adapter']))
+                            if not canary_authorized(self.root, queued['payload']):
+                                blockers.append('Falta autorización vigente para esta prueba y etapa.')
+                    elif not running and not inspected and c['state'] != 'complete':
+                        blockers.append('Falta conectar y validar la siguiente etapa de producción automática.')
                     enabled = self.enabled(cid)
-                    state = ("reviewing" if running["adapter"] in {"media_check", "quality"} else "running") if running else "paused" if (not enabled or self.controls["paused"]) else "blocked" if blockers else "ready"
+                    state = ("reviewing" if running["adapter"] in {"media_check", "quality"} else "running") if running else "paused" if (not enabled or self.controls["paused"]) else "blocked" if blockers else "queued" if queued else "review_pending" if inspected else "complete" if c['state'] == 'complete' else "ready"
                     video = self.last_video(cid, steps, intents)
                     lines.append({"id": cid, "name": c["name"], "enabled": enabled,
-                                  "state": state, "stage": running["adapter"] if running else state if state in {"paused", "blocked"} else c["state"],
-                                  "blockers": blockers, "last_video": video, "progress": None,
+                                  "state": state, "stage": running["adapter"] if running else state,
+                                  "blockers": blockers, "activation_blockers": activation_blockers,
+                                  "autonomous_ready": c['ready'], "last_video": video, "progress": None,
                                   "job_id": c["job_id"], "production_date": c["production_date"]})
             for extra in self.settings.get("extra_lines", []):
                 lines.append({**extra, "enabled": self.controls["lines"].get(extra["id"], extra["enabled"]),

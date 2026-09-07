@@ -2,6 +2,7 @@
   "schema_version": 1,
   "timezone": "Europe/Madrid",
   "daily_reels_per_channel": 1,
+  "active_platforms": ["youtube"],
   "production_time": "09:00",
   "production_time_status": "proposed",
   "publication_time": "19:00",

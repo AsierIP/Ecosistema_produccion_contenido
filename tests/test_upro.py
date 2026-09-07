@@ -171,6 +171,35 @@ class UproTests(unittest.TestCase):
         second.acquire()
         second.close()
 
+    def test_completed_render_handoff_survives_restart_without_rerender(self):
+        key = self.queue.register(self.plan(adapter='cutout', mode='production'))
+        self.assertTrue(self.queue.claim(key))
+        self.queue.finish(key, {'status': 'TECHNICAL_PASS', 'output_path': str(self.source),
+                                'sha256': file_hash(self.source)}, 'accepted')
+        reopened = Queue(self.root)
+        new = reopened.advance_completed_renders()
+        self.assertEqual(len(new), 1)
+        self.assertEqual(reopened.advance_completed_renders(), [])
+        followup = reopened.list()[-1]
+        self.assertEqual(followup['adapter'], 'media_check')
+        self.assertEqual(followup['mode'], 'validation')
+        self.assertEqual(followup['payload']['depends_on'], [key])
+        self.assertEqual(reopened.list()[0]['state'], 'accepted')
+
+    def test_changed_render_never_promoted_to_inspection(self):
+        key = self.queue.register(self.plan(adapter='cutout', mode='production'))
+        self.queue.claim(key)
+        self.queue.finish(key, {'status': 'TECHNICAL_PASS', 'output_path': str(self.source),
+                                'sha256': file_hash(self.source)}, 'accepted')
+        self.source.write_bytes(b'replaced')
+        self.assertEqual(self.queue.advance_completed_renders(), [])
+
+    def test_activity_survives_restart_and_partial_last_record(self):
+        self.controller.event('Etapa comprobada', line_id='religion')
+        with (self.controller.runtime / 'activity.jsonl').open('a') as stream:
+            stream.write('{incomplete')
+        self.assertEqual(self.controller.load_activity()[-1]['message'], 'Etapa comprobada')
+
 
 if __name__ == '__main__':
     unittest.main()

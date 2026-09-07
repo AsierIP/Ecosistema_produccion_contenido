@@ -23,6 +23,7 @@
     generating: ["Generando", "active"],
     rendering: ["Montando", "active"],
     reviewing: ["Revisando", "active"],
+    review_pending: ["Vídeo pendiente de revisión", "inactive"],
     publishing: ["Publicando", "active"],
     ready: ["Lista", "active"],
     idle: ["En espera", "inactive"],
@@ -51,6 +52,7 @@
     assets: "Preparando las imágenes y el audio", visual: "Preparando las escenas",
     release: "Comprobando la publicación", running: "Producción en curso",
     media_check: "Comprobando el vídeo terminado", cutout: "Preparando las capas de imagen",
+    review_pending: "Montaje e inspección técnica terminados; falta la revisión editorial y audiovisual independiente",
     ambient: "Animando el ambiente de las escenas", queued: "Esperando su turno de producción",
     blocked: "Hay requisitos pendientes para continuar", paused: "La línea está en pausa",
     ready: "Preparada para la siguiente etapa", idle: "Esperando la próxima producción",
@@ -230,6 +232,14 @@
       const blockers = node("ul", "line-blockers");
       line.blockers.forEach((blocker) => blockers.append(node("li", "", blockerText(blocker))));
       body.append(blockers);
+    }
+    if (Array.isArray(line.activation_blockers) && line.activation_blockers.length) {
+      const details = node("details", "line-activation");
+      details.append(node("summary", "", "Producción diaria autónoma: requisitos pendientes"));
+      const requirements = node("ul", "line-blockers");
+      line.activation_blockers.forEach((item) => requirements.append(node("li", "", blockerText(item))));
+      details.append(requirements);
+      body.append(details);
     }
     article.append(body);
 

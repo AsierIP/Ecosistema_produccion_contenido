@@ -27,6 +27,7 @@ class PipelineTests(unittest.TestCase):
 
     def test_source_and_identity_missing_are_not_ready(self):
         channel = next(c for c in load_channels(self.root) if c["id"] == "sabias-que")
+        channel["platforms"]["youtube"]["verification_status"] = "pending"
         blockers = readiness(channel, {}, {"automatic_execution_enabled": True})
         self.assertTrue(any("youtube" in b for b in blockers))
         self.assertTrue(any("Fuente" in b for b in blockers))
@@ -34,6 +35,8 @@ class PipelineTests(unittest.TestCase):
 
     def test_assigned_accounts_still_require_session_verification(self):
         channel = next(c for c in load_channels(self.root) if c["id"] == "sabias-que")
+        channel["platforms"]["youtube"]["verification_status"] = "pending"
+        channel["visual"]["generation_provider"] = "vibes"
         local = {"channels": {"sabias-que": {"provider_profile": "SabiasQueVibe", "provider_identity": {"status": "assigned_pending_login_verification"}}}}
         blockers = readiness(channel, local, {"automatic_execution_enabled": True})
         self.assertFalse(any("Falta la cuenta exacta de youtube" == b for b in blockers))

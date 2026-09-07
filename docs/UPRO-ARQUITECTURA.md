@@ -67,6 +67,35 @@ generación; puede ejecutarse antes de cualificar la migración. El modo
 una lista de funciones conocidas, no comandos del manifiesto. Una etapa por
 canal avanza a la vez; las dependencias deben pertenecer al mismo trabajo.
 
+El modo `canary` permite la primera prueba sin exigir que esa misma prueba ya
+haya pasado. Requiere autorización local ligada al canal, trabajo y adaptadores,
+comprobada al registrar y justo antes de ejecutar. Conserva los requisitos de
+la etapa y no permite publicar. El ámbito activo de plataformas evita que una
+cuenta TikTok pendiente bloquee un trabajo limitado a YouTube; los canales que
+generan imágenes con ImageGen no requieren una sesión Vibes.
+
+Un montaje aceptado encadena automáticamente una inspección de medios. La
+transición se recupera al abrir el programa si hubo un cierre entre etapas,
+verifica el hash del máster y no vuelve a montar ni duplicar la inspección.
+La actividad reciente se conserva entre reinicios. El panel distingue la etapa
+actual de los requisitos pendientes para activar la producción diaria autónoma;
+un vídeo técnicamente válido se muestra como pendiente de revisión.
+
+## Comprobación del 7 de septiembre de 2026
+
+Upro ejecutó cuatro animaciones CUDA/NVENC y el montaje de una prueba de
+¿Sabías que?, con imágenes y voz ya existentes. Tras reiniciar el ejecutable,
+encadenó por sí solo la decodificación y la vista previa del máster. Esto valida
+ese tramo local; no valida la generación de nuevos recursos ni la publicación.
+
+El ejecutor CLI instalado no tenía servidores MCP configurados. Las herramientas
+del navegador integrado de la conversación no se transfieren por registrar una
+etapa en la cola. Quedan por integrar y probar, en un entorno independiente:
+generación visual por proveedor, narración con la voz aprobada, revisión completa
+de imagen y sonido, y publicación con identidad y recibo público. No activar el
+indicador global de producción para ocultar esta dependencia. No usar cookies,
+claves ni sesiones extraídas de la aplicación como atajo de integración.
+
 Tras un cierre inesperado las etapas en curso pasan a inciertas. No se vuelven a
 ejecutar. Hay que inspeccionar evidencias y procesos antes de usar
 `--reconcile ID --evidence resultado.json` con `checked: true` y `reason`.

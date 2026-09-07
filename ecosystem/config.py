@@ -64,7 +64,8 @@ def readiness(channel: dict, local: dict, settings: dict) -> list[str]:
         blockers.append("Falta fijar la voz")
     if not channel.get("audience"):
         blockers.append("Falta definir el público y las exclusiones editoriales")
-    enabled = [(name, data) for name, data in channel["platforms"].items() if data.get("enabled")]
+    scope = settings.get("active_platforms", ["youtube", "tiktok"])
+    enabled = [(name, data) for name, data in channel["platforms"].items() if data.get("enabled") and name in scope]
     if not enabled:
         blockers.append("No hay destinos habilitados")
     for name, data in enabled:
@@ -83,10 +84,42 @@ def readiness(channel: dict, local: dict, settings: dict) -> list[str]:
         source_path = machine.get("source_paths", {}).get(source["id"])
         if not source_path or not Path(source_path).exists():
             blockers.append(f"Fuente local no disponible: {source['id']}")
-    if not machine.get("provider_profile"):
-        blockers.append("Falta vincular el perfil exclusivo del proveedor visual")
-    elif machine.get("provider_identity", {}).get("status") not in {None, "verified"}:
-        blockers.append("Correo de Vibes asignado; falta verificar la sesión del proveedor")
+    if channel["visual"].get("generation_provider", "vibes") == "vibes":
+        if not machine.get("provider_profile"):
+            blockers.append("Falta vincular el perfil exclusivo del proveedor visual")
+        elif machine.get("provider_identity", {}).get("status") not in {None, "verified"}:
+            blockers.append("Correo de Vibes asignado; falta verificar la sesión del proveedor")
     if not settings.get("automatic_execution_enabled"):
         blockers.append("Ejecución central pendiente de activación tras la migración")
     return blockers
+
+
+def preparation_readiness(channel, local, adapter):
+    """Requirements for isolated non-publishing work, not daily activation.
+
+    Rendering a canary cannot require that same canary to have already passed.
+    Identity and destination checks still apply at generation/publication stages.
+    """
+    allowed = {"creative", "metadata", "quality", "ambient", "cutout", "media_check"}
+    if adapter not in allowed:
+        return ["La etapa no admite ejecución preparatoria"]
+    errors = channel_errors(channel)
+    if errors:
+        return errors
+    if channel["lifecycle"] == "paused":
+        return ["Canal pausado"]
+    if adapter == "media_check":
+        return []
+    if not channel["visual"].get("approved"):
+        errors.append("Falta aprobar la biblia visual")
+    if adapter in {"ambient", "cutout"} and channel["id"] == "religion":
+        errors.append("Religion pro v5 requiere su adaptador cinematográfico; no admite montaje cómic")
+    if adapter == "cutout" and not channel["voice"].get("approved"):
+        errors.append("Falta aprobar la voz")
+    if adapter in {"creative", "metadata"}:
+        machine = local.get("channels", {}).get(channel["id"], {})
+        for source in channel["sources"]:
+            path = machine.get("source_paths", {}).get(source["id"])
+            if not path or not Path(path).exists():
+                errors.append("Fuente local no disponible: " + source["id"])
+    return errors

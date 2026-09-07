@@ -20,6 +20,15 @@ ADAPTERS = {"creative", "metadata", "quality", "media_check", "cutout", "ambient
 GPU_ADAPTERS = {"cutout", "ambient"}
 
 
+def canary_authorized(root, plan):
+    try:
+        grant = read_json(Path(root) / ".runtime/authorizations" / ("canary-" + plan["channel_id"] + ".json"))
+        return (grant.get("authorized") is True and grant.get("job_id") == plan["job_id"]
+                and plan["adapter"] in grant.get("adapters", []) and bool(grant.get("user_instruction")))
+    except (OSError, ValueError, KeyError):
+        return False
+
+
 class Queue:
     def __init__(self, root):
         self.root = Path(root).resolve()
@@ -45,8 +54,10 @@ class Queue:
         if not job or job["state"] == "complete" or job["channel_id"] != plan.get("channel_id"):
             raise ValueError("Trabajo inexistente, terminado o de otro canal")
         mode = plan.get("mode", "production")
-        if mode not in {"production", "validation"} or (mode == "validation" and plan["adapter"] != "media_check"):
+        if mode not in {"production", "validation", "canary"} or (mode == "validation" and plan["adapter"] != "media_check"):
             raise ValueError("Antes de la migración solo se admite inspección de medios sin efectos externos")
+        if mode == "canary" and not canary_authorized(self.root, plan):
+            raise ValueError("La prueba inicial necesita una autorización local para este trabajo y etapa")
         inputs = plan.get("inputs")
         if not isinstance(inputs, list) or not inputs:
             raise ValueError("La etapa necesita entradas explícitas y sus hashes")
@@ -75,6 +86,38 @@ class Queue:
         # No blind retries after app/PC interruption, even for local render outputs.
         with self.connect() as con:
             con.execute("UPDATE steps SET state='uncertain',updated=? WHERE state='running'", (time.time(),))
+
+    def advance_completed_renders(self):
+        """Recover the render-to-inspection handoff even if the app closed in between.
+
+        Inspection is read-only and idempotent. It never grants editorial approval.
+        """
+        steps = self.list()
+        created = []
+        for step in steps:
+            if step['adapter'] != 'cutout' or step['state'] != 'accepted':
+                continue
+            if any(step['id'] in s['payload'].get('depends_on', []) and
+                   s['adapter'] == 'media_check' for s in steps):
+                continue
+            result = step.get('result') or {}
+            path = Path(result.get('output_path', ''))
+            if result.get('status') != 'TECHNICAL_PASS' or not path.is_file():
+                continue
+            if file_hash(path) != result.get('sha256'):
+                continue
+            from .store import Store
+            with Store(self.root / '.runtime/production.sqlite3') as store:
+                job = store.get_job(step['job_id'])
+            if not job or job['state'] == 'complete':
+                continue
+            created.append(self.register({
+                'schema_version': 1, 'job_id': step['job_id'],
+                'channel_id': step['channel_id'], 'adapter': 'media_check',
+                'mode': 'validation', 'depends_on': [step['id']],
+                'inputs': [{'path': str(path.resolve()), 'sha256': result['sha256']}],
+            }))
+        return created
 
     def list(self, channel=None):
         with self.connect() as con:
@@ -134,6 +177,8 @@ def execute_step(root, step):
     """Only statically registered adapters, no shell or arbitrary executable."""
     root = Path(root)
     plan = step["payload"]
+    if plan.get("mode") == "canary" and not canary_authorized(root, plan):
+        raise ValueError("La autorización de la prueba inicial ya no está vigente")
     paths = []
     for ref in plan["inputs"]:
         path = Path(ref["path"])
@@ -167,7 +212,7 @@ def execute_step(root, step):
         # Existing renderer owns and renews the global GPU lease itself.
         flags = subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0
         with (out / "render.log").open("w", encoding="utf-8") as log:
-            run = subprocess.run([runtime, str(root / "scripts/render-ambient.py"), str(paths[0])],
+            run = subprocess.run([runtime, "-X", "utf8", str(root / "scripts/render-ambient.py"), str(paths[0])],
                                  stdout=log, stderr=log, stdin=subprocess.DEVNULL, shell=False,
                                  timeout=1800, creationflags=flags)
         if run.returncode:
