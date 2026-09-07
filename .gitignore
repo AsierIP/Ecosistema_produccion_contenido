@@ -18,3 +18,7 @@ weights/
 *.mp3
 *.safetensors
 *.pdf
+build/
+dist/
+*.exe
+*.spec

@@ -18,7 +18,9 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
             raise ValueError("Unknown job")
         intents = store.list_intents(job_id)
     channel = next(c for c in load_channels(root) if c["id"] == job["channel_id"])
-    routing = read_json(root / "config/models.json")["roles"][role]
+    models = read_json(root / "config/models.json")
+    routing = dict(models["roles"][role])
+    routing.update(models.get("channel_role_overrides", {}).get(channel["id"], {}).get(role, {}))
     refs = []
     for artifact in artifacts:
         path = Path(artifact).resolve(strict=True)
@@ -31,7 +33,7 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     prompt = prompt_path.read_text(encoding="utf-8")
     profile_path = root / "config/profiles" / (channel["visual"]["profile"] + ".json")
     profile = read_json(profile_path)
-    fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt}, inputs=refs, model=routing)
+    fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt, "receipt_schema": read_json(root / "config/receipt.schema.json"), "runner_limits": models.get("runner_limits", {}), "validator_version": 2}, inputs=refs, model=routing)
     output = root / ".runtime/jobs" / job_id / role / fingerprint[:16]
     packet = {
         "schema_version": 1, "job_id": job_id, "job_version": job["version"],
@@ -81,6 +83,21 @@ def validate_receipt(receipt, packet):
                 errors.append("artifact hash or size mismatch")
         except (ValueError, OSError, KeyError, TypeError):
             errors.append("invalid artifact")
+    allowed_inputs = {str(Path(ref["path"]).resolve()): ref for ref in packet.get("inputs", [])}
+    reviewed = receipt.get("inputs_reviewed", [])
+    if not isinstance(reviewed, list):
+        errors.append("inputs_reviewed must be a list")
+    else:
+        for ref in reviewed:
+            try:
+                path = Path(ref["path"]).resolve(strict=True)
+                expected = allowed_inputs.get(str(path))
+                if expected is None or ref.get("sha256") != expected["sha256"] or ref.get("bytes") != expected["bytes"]:
+                    errors.append("reviewed input not bound to work order")
+                elif file_hash(path) != ref["sha256"] or path.stat().st_size != ref["bytes"]:
+                    errors.append("reviewed input hash or size mismatch")
+            except (ValueError, OSError, KeyError, TypeError):
+                errors.append("invalid reviewed input")
     if receipt.get("decision") == "ACCEPT":
         if not artifacts or not checks:
             errors.append("ACCEPT requires artifacts and checks")

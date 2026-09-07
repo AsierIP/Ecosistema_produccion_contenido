@@ -43,7 +43,7 @@
     },
     "tiktok": {"enabled": true, "account": null, "handle": null}
   },
-  "release": {"mode": "awaiting_user_policy", "language_authorized": "es-ES", "ai_disclosure": true},
+  "release": {"mode": "automatic_after_qa", "language_authorized": "es-ES", "ai_disclosure": true, "authorized_on": "2026-09-07", "preview_required": false},
   "daily_reels": 1,
   "migration": {"legacy_key": "sabias-que", "canary_passed": false, "legacy_writer_reconciled": false},
   "verified_configuration_on": "2026-09-05"

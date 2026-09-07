@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#101314">
+    <meta name="description" content="Upro. Tu centro local de producción de contenido.">
+    <title>Upro · Centro de producción</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='17' fill='%23101314'/%3E%3Cpath d='M18 17v23c0 15 28 15 28 0V17' fill='none' stroke='%23b5f1de' stroke-width='10'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Saltar al panel</a>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegación principal">
+        <a class="brand" href="#main" aria-label="Upro, centro de producción">
+          <span class="brand-mark" aria-hidden="true">u<span></span></span>
+          <span>upro<span class="brand-period">.</span></span>
+        </a>
+        <span class="workspace-label">TU ESTUDIO LOCAL</span>
+        <nav>
+          <a class="nav-link active" href="#production"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>Producción</a>
+          <a class="nav-link" href="#activity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>Actividad</a>
+        </nav>
+        <div class="sidebar-note">
+          <span class="eyebrow">UN SISTEMA. TUS CANALES.</span>
+          <p>Cada línea conserva su voz y su estilo. Las mejoras se comparten.</p>
+        </div>
+        <div class="device-label"><span class="status-dot muted" id="sidebar-dot"></span><span id="sidebar-device">Conectando con tu PC</span></div>
+      </aside>
+
+      <main id="main" tabindex="-1">
+        <header class="page-header">
+          <div><span class="eyebrow">DE LA IDEA AL VÍDEO</span><h1>Centro de producción<span>.</span></h1><p class="page-intro">Tus canales, cada uno a su ritmo. Todo bajo control.</p></div>
+          <div class="header-actions"><span id="connection-status" class="connection-status"><span class="status-dot muted"></span>Conectando</span><div class="header-buttons"><button id="refresh-button" class="button button-quiet" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 7A7 7 0 0 1 18 6l2 3M4 15l2 3a7 7 0 0 0 11.9-1"/></svg><span>Comprobar ahora</span></button><button id="shutdown-button" class="button button-quiet button-shutdown" type="button" title="El motor terminará las etapas en curso antes de cerrarse." aria-describedby="shutdown-help" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v9M6 6a8 8 0 1 0 12 0"/></svg><span>Cerrar Upro</span></button></div></div>
+        </header>
+
+        <div id="error-banner" class="notice notice-error" role="alert" hidden></div>
+        <p id="action-announcement" class="sr-only" role="status" aria-live="polite"></p>
+
+        <section class="studio-overview" aria-label="Estado del estudio">
+          <div class="overview-primary"><span class="overview-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m9 5 10 7-10 7z"/></svg></span><div><span class="eyebrow">MOTOR DE PRODUCCIÓN</span><h2 id="engine-title">Preparando el panel</h2><p id="engine-detail">Esperando el estado real de tus líneas.</p></div></div>
+          <div class="overview-actions"><div class="gpu-status"><span class="status-dot muted" id="gpu-dot"></span><span id="gpu-status">GPU: consultando</span></div><button class="button button-outline" id="pause-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg><span>Pausar todas</span></button></div>
+        </section>
+
+        <div id="execution-notice" class="notice notice-info" hidden></div>
+        <div id="resource-summary" class="resource-summary" aria-label="Uso del estudio" hidden></div>
+
+        <section id="production" class="production-section" aria-labelledby="production-title">
+          <div class="section-heading"><div><span class="eyebrow">TU PROGRAMACIÓN</span><h2 id="production-title">Líneas de producción <span id="line-count" class="count-badge">—</span></h2></div><p id="line-summary">Cargando tus canales…</p></div>
+          <div id="lines" class="line-grid" aria-busy="true"><div class="initial-loading"><span class="spinner" aria-hidden="true"></span><p>Conectando con el estudio…</p></div></div>
+          <div id="empty-lines" class="empty-state" hidden><div class="empty-icon" aria-hidden="true">＋</div><h3>Tu estudio empieza aquí</h3><p>Aún no hay líneas configuradas. Añade un canal al ecosistema para verlo en este panel.</p></div>
+        </section>
+
+        <section id="activity" class="activity-section" aria-labelledby="activity-title">
+          <div class="section-heading"><div><span class="eyebrow">LO QUE ESTÁ PASANDO</span><h2 id="activity-title">Actividad reciente</h2></div><span class="live-label"><span class="status-dot muted" id="activity-dot"></span><span id="activity-live">Esperando conexión</span></span></div>
+          <ol id="activity-list" class="activity-list"><li class="activity-empty">La actividad aparecerá cuando el motor comunique su estado.</li></ol>
+        </section>
+        <footer class="page-footer"><span>Upro · Hecho para crecer contigo</span><span id="last-updated">Estado pendiente de actualización</span><span id="shutdown-help">Al cerrar Upro, las etapas en curso terminan antes de salir.</span></footer>
+      </main>
+    </div>
+    <noscript><div class="noscript">Activa JavaScript para usar el panel de Upro.</div></noscript>
+  </body>
+</html>

@@ -1,0 +1,104 @@
+# Upro: motor local y etapas compartidas
+
+Upro 0.2 es un programa local para Windows con interfaz web servida exclusivamente
+en `127.0.0.1`. Abrir el ejecutable inicia el coordinador sin necesitar esta
+conversación abierta. La generación y publicación autónomas completas siguen
+pendientes de adaptar y cualificar en los dos canales. Un interruptor activado
+expresa la preferencia del usuario; no convierte un bloqueo en una aprobación.
+
+## Componentes
+
+- `ecosystem/upro.py`: servidor, controles persistentes,
+  exclusión de segunda instancia, planificación y dos trabajadores como máximo.
+- `ecosystem/upro_queue.py`: etapas con entradas ligadas a hash, dependencias,
+  reclamación transaccional, recibos y recuperación conservadora.
+- `ecosystem/static/`: panel sin dependencias ni llamadas a modelos.
+- `channels/`: personalidad, voz, fuentes, cadencia y publicación de cada canal.
+- `config/models.json`: modelos y límites del ejecutor por función y excepciones
+  de Religion pro v5; no se duplica el motor por canal.
+
+La cola diaria reanuda primero el trabajo más antiguo. No acumula un reel nuevo
+cada vez que se abre el programa. Los controles se guardan en
+`.runtime/upro/controls.json`; los trabajos, pasos, medios y evidencias permanecen
+fuera de Git. Cerrar la pestaña deja el motor abierto; el botón de cierre espera
+que terminen las etapas en curso.
+
+## Adaptadores disponibles y límites
+
+| Etapa | Ejecución | Alcance |
+|---|---|---|
+| Coordinación y panel | Python local | Sin tokens |
+| Guion, metadatos, revisión | Ejecutor Codex | Cápsula, modelo por rol y recibo |
+| Movimiento ambiental | CUDA y NVENC existentes | Reserva global GPU y protección de objetos rígidos |
+| Montaje cómic | FFmpeg y NVENC existentes | Máster local y evidencia técnica |
+| Inspección de máster | FFprobe y FFmpeg | Decodificación completa; no sustituye revisión artística |
+| Imágenes nuevas, voz y publicación | Pendiente | No se presentan como producción automática validada |
+
+Las etapas GPU adquieren y renuevan su reserva global en los adaptadores
+existentes. Dos canales pueden avanzar en tareas distintas, pero no iniciar dos
+renderizados GPU simultáneos. El sistema no descarga pesos, contrata APIs ni
+cambia la voz para abaratar. El PC debe estar encendido y despierto para avanzar.
+
+Las revisiones editorial y audiovisual independientes, identidad, licencias,
+subtítulos literales e intención de publicación continúan siendo requisitos.
+Una decodificación correcta permite mostrar un vídeo local para revisión y no
+autoriza publicarlo. La línea Religion de cinco minutos permanece pausada.
+
+## Registrar una etapa desde el código de producción
+
+El panel nunca recibe rutas ni comandos arbitrarios. El productor registra un
+plan local mediante `python -m ecosystem.upro --register plan.json`:
+
+```json
+{
+  "schema_version": 1,
+  "job_id": "identificador existente",
+  "channel_id": "sabias-que",
+  "adapter": "media_check",
+  "mode": "validation",
+  "inputs": [{"path": "E:/canal/master.mp4", "sha256": "hash real SHA-256"}],
+  "depends_on": []
+}
+```
+
+El modo `validation` solo permite inspeccionar un medio, sin publicación ni
+generación; puede ejecutarse antes de cualificar la migración. El modo
+`production` exige que `readiness` esté libre de bloqueos. Los adaptadores son
+una lista de funciones conocidas, no comandos del manifiesto. Una etapa por
+canal avanza a la vez; las dependencias deben pertenecer al mismo trabajo.
+
+Tras un cierre inesperado las etapas en curso pasan a inciertas. No se vuelven a
+ejecutar. Hay que inspeccionar evidencias y procesos antes de usar
+`--reconcile ID --evidence resultado.json` con `checked: true` y `reason`.
+Esto archiva el intento; cualquier corrección necesita un plan nuevo. Tampoco se
+repite una publicación cuyo resultado aún no se haya reconciliado.
+
+## Consumo y calidad
+
+La coordinación, actualización cada cinco segundos, hashes, montaje y validación
+técnica usan código local. Los agentes reciben referencias y contexto específico
+de su etapa; caché y presupuesto de intentos impiden repetir el mismo trabajo.
+Los cambios de política y esquema invalidan la caché. Una revisión sin las
+capacidades y evidencias requeridas se bloquea antes de iniciar el agente.
+
+Los límites de salida son objetivos de prompt, no cuotas duras del proveedor.
+Hay límites de tiempo por función. Se guardan tokens de los eventos de turno
+completado incluso cuando una ejecución posterior termina con error. Entrada
+incluye tokens en caché: no se suma caché otra vez al total. Una ausencia de
+telemetría significa desconocido, nunca consumo cero. El panel excluye el trabajo
+de desarrollo de esta conversación.
+
+Los eventos `turn.completed` y las respuestas con `--output-schema` siguen el
+contrato del [modo no interactivo de Codex](https://learn.chatgpt.com/docs/non-interactive-mode).
+
+No se promete un porcentaje de ahorro: queda pendiente medir varios reels
+completos con su revisión independiente y comparar consumo, fallos y calidad.
+Religion pro v5 conserva Sol medium en todos sus roles de agente.
+
+## Acceso local
+
+El servidor valida Host y Origin, exige un token para los cambios y no habilita
+CORS. Los vídeos se sirven únicamente desde inspecciones registradas, con hash
+verificado y soporte de reproducción parcial. Otro programa que ya controle esta
+misma cuenta de Windows queda dentro del ámbito de confianza local; este servidor
+no es un servicio para exponer a Internet.

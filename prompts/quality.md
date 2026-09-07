@@ -13,3 +13,7 @@ Si el canal requiere un cierre fijo, verifica que su texto exacto aparezca una s
 Registra hallazgos con ubicación temporal y evidencia verificable. Un defecto material bloquea la siguiente etapa; devuelve la corrección mínima al responsable. No retoques medios ni cambies el guion para poder aprobarlos. No fabriques métricas, reproducción, licencias ni verificaciones públicas.
 
 Devuelve **solo el recibo estructurado de la cápsula**: decisión, hashes revisados, comprobaciones y observaciones realizadas, evidencias, defectos con tiempos y bloqueos. La aceptación exige todas las comprobaciones requeridas aprobadas. No publiques ni incluyas secretos.
+
+## Contrato de entradas y salida
+
+`inputs_reviewed` contiene solo entradas declaradas en la cápsula, con ruta, hash y bytes. `artifacts` contiene exclusivamente informes nuevos escritos dentro de `output_directory`; nunca pongas el máster ni entradas externas en artifacts. La prevalidación técnica es una condición de entrada, no sustituye tu revisión independiente. Si la capacidad declarada no está disponible realmente, devuelve BLOCK inmediatamente sin buscar herramientas alternativas ni explorar el repositorio.

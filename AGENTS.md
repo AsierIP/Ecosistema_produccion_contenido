@@ -5,6 +5,10 @@ en `channels/`; las políticas comunes, en `config/`; el estado local, en `.runt
 No duplicar el núcleo por canal. No modificar los proyectos históricos para una
 migración implícita. No leer ni tocar Tradeo.
 
+Para descripciones de reels de ¿Sabías que?, aplicar
+`.agents/skills/sabias-que-descripciones/SKILL.md`: primer párrafo y llamada a
+like/suscripción, con la única excepción de créditos exigidos por licencia.
+
 Ante «tengo una idea para un canal», consultar `config/onboarding.json`, recuperar
 lo ya conocido y preguntar solo los campos que faltan por bloques breves. Registrar
 la ficha con `python -m ecosystem onboard --answers ...`. No inventar cuentas,

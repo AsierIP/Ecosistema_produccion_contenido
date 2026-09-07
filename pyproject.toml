@@ -1,9 +1,10 @@
 [project]
 name = "ecosistema-produccion-contenido"
-version = "0.1.0"
+version = "0.2.0"
 description = "Núcleo local de producción audiovisual multicanal"
 requires-python = ">=3.12"
 dependencies = []
 
 [project.scripts]
 ecosistema = "ecosystem.cli:main"
+upro = "ecosystem.upro:main"

@@ -4,18 +4,90 @@
   "status": "initial-routing-requires-quality-benchmark",
   "official_reference": "https://developers.openai.com/api/docs/models",
   "roles": {
-    "coordinator": {"engine": "python", "model": null},
-    "creative": {"engine": "codex", "model": "gpt-5.6-terra", "effort": "medium", "max_input_chars": 24000, "target_output_tokens": 2200},
-    "visual": {"engine": "codex", "model": "gpt-5.6-terra", "effort": "medium", "max_input_chars": 18000, "target_output_tokens": 1400},
-    "metadata": {"engine": "codex", "model": "gpt-5.6-luna", "effort": "low", "max_input_chars": 12000, "target_output_tokens": 600},
-    "render": {"engine": "python_ffmpeg_gpu", "model": null},
-    "technical_qa": {"engine": "python_ffmpeg", "model": null},
-    "quality": {"engine": "codex", "model": "gpt-5.6-sol", "effort": "medium", "max_input_chars": 24000, "target_output_tokens": 1600},
-    "release": {"engine": "codex", "model": "gpt-5.6-terra", "effort": "low", "max_input_chars": 14000, "target_output_tokens": 1000}
+    "coordinator": {
+      "engine": "python",
+      "model": null
+    },
+    "creative": {
+      "engine": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "medium",
+      "max_input_chars": 24000,
+      "target_output_tokens": 2200
+    },
+    "visual": {
+      "engine": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "medium",
+      "max_input_chars": 18000,
+      "target_output_tokens": 1400
+    },
+    "metadata": {
+      "engine": "codex",
+      "model": "gpt-5.6-luna",
+      "effort": "low",
+      "max_input_chars": 12000,
+      "target_output_tokens": 600
+    },
+    "render": {
+      "engine": "python_ffmpeg_gpu",
+      "model": null
+    },
+    "technical_qa": {
+      "engine": "python_ffmpeg",
+      "model": null
+    },
+    "quality": {
+      "engine": "codex",
+      "model": "gpt-5.6-sol",
+      "effort": "medium",
+      "max_input_chars": 24000,
+      "target_output_tokens": 1600
+    },
+    "release": {
+      "engine": "codex",
+      "model": "gpt-5.6-terra",
+      "effort": "low",
+      "max_input_chars": 14000,
+      "target_output_tokens": 1000
+    }
   },
   "speed": "standard",
   "max_attempts_per_stage": 2,
   "automatic_model_escalation": false,
   "quality_policy": "No abaratar quality hasta superar una comparación ciega del mismo lote sin regresiones críticas.",
-  "output_limits_are": "prompt_targets_not_provider_hard_limits"
+  "output_limits_are": "prompt_targets_not_provider_hard_limits",
+  "channel_role_overrides": {
+    "religion": {
+      "creative": {
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "visual": {
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "quality": {
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "metadata": {
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      },
+      "release": {
+        "model": "gpt-5.6-sol",
+        "effort": "medium"
+      }
+    }
+  },
+  "runner_limits": {
+    "timeout_seconds_by_role": {
+      "creative": 300,
+      "metadata": 120,
+      "quality": 420
+    },
+    "retained_log_bytes": 2000000,
+    "token_cap_enforced": false
+  }
 }
