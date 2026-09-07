@@ -59,6 +59,22 @@ def open_connection(channel_id, *, root=ROOT):
                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
 
 
+def open_provider_connection(channel_id, *, root=ROOT):
+    channel = next((c for c in load_channels(root) if c['id'] == channel_id), None)
+    if not channel or channel['visual'].get('generation_provider', 'vibes') != 'vibes':
+        raise ValueError('This channel does not use Vibes')
+    local = read_json(Path(root) / 'local.json')
+    chrome = Path(local.get('browser_runtime', {}).get('chrome', ''))
+    if not chrome.is_file():
+        raise ValueError('Chrome runtime unavailable')
+    profile = Path(root).resolve() / '.runtime/browser-profiles' / channel_id
+    # Normal manual sign-in browser: no credential automation or copied sessions.
+    return subprocess.Popen([str(chrome), '--user-data-dir=' + str(profile), '--disable-background-mode',
+                             '--new-window', 'https://vibes.ai/'], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()

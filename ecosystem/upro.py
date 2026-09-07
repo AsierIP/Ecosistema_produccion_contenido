@@ -128,6 +128,18 @@ class Controller:
         write_json(temporary, self.controls)
         temporary.replace(self.control_path)
 
+    def connect_provider(self, channel_id):
+        from .browser import open_provider_connection
+        with self.guard:
+            if any(w['channel'] == channel_id and w['adapter'] in {'visual', 'release'} for w in self.active.values()):
+                raise ValueError('Espera a que termine la operación del navegador de este canal.')
+            key = channel_id + ':provider'
+            previous = self.browser_connections.get(key)
+            if previous is not None and previous.poll() is None:
+                return
+            self.browser_connections[key] = open_provider_connection(channel_id, root=self.root)
+            self.event('Vibes abierto en el navegador del canal. Inicia sesión y cierra la ventana al terminar.', line_id=channel_id)
+
     def set_line(self, line_id, enabled):
         with self.guard:
             ids = {c["id"] for c in load_channels(self.root)}
@@ -294,6 +306,7 @@ class Controller:
                     from .browser import connection_observation
                     lines.append({"id": cid, "name": c["name"], "enabled": enabled,
                                   "browser_connection": connection_observation(cid, root=self.root),
+                                  "provider_connection_available": next(p for p in load_channels(self.root) if p['id'] == cid)['visual'].get('generation_provider', 'vibes') == 'vibes',
                                   "state": state, "stage": running["adapter"] if running else state,
                                   "blockers": blockers, "activation_blockers": activation_blockers,
                                   "autonomous_ready": c['ready'], "last_video": video, "progress": None,
@@ -454,6 +467,8 @@ class Handler(BaseHTTPRequestHandler):
             path = urlsplit(self.path).path
             if path.startswith('/api/browser/') and data == {}:
                 c.connect_browser(path.removeprefix('/api/browser/'))
+            elif path.startswith('/api/provider/') and data == {}:
+                c.connect_provider(path.removeprefix('/api/provider/'))
             elif path.startswith("/api/lines/"):
                 if set(data) != {"enabled"} or not isinstance(data["enabled"], bool):
                     raise ValueError("enabled debe ser verdadero o falso")

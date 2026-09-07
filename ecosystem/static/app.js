@@ -213,6 +213,13 @@
       connect.disabled = !status?.csrf_token || mutating;
       connect.title = 'Abrir el navegador propio de este canal para iniciar sesión';
       article.append(connect);
+      if (line.provider_connection_available) {
+        const provider = node('button', 'button', 'Conectar Vibes');
+        provider.type = 'button';
+        provider.dataset.providerChannel = String(line.id);
+        provider.disabled = !status?.csrf_token || mutating;
+        article.append(provider);
+      }
       if (line.browser_connection) {
         const message = line.browser_connection.status === 'CHANNEL_READY'
           ? 'Último acceso al canal comprobado' : 'Pendiente de iniciar sesión en el navegador de Upro';
@@ -420,6 +427,11 @@
   }
 
   $("lines").addEventListener("click", (event) => {
+    const provider = event.target.closest('button[data-provider-channel]');
+    if (provider && !provider.disabled) {
+      mutate(`/api/provider/${encodeURIComponent(provider.dataset.providerChannel)}`, {}, 'Vibes abierto. Inicia sesión en el canal y cierra la ventana al terminar.');
+      return;
+    }
     const connect = event.target.closest('button[data-browser-channel]');
     if (connect && !connect.disabled) {
       mutate(`/api/browser/${encodeURIComponent(connect.dataset.browserChannel)}`, {}, 'Acceso abierto en Chrome. Upro cerrará la ventana cuando reconozca el canal conectado.');
