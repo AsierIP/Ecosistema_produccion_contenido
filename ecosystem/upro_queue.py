@@ -218,6 +218,12 @@ def execute_step(root, step):
     out = root / ".runtime/upro/results" / step["id"]
     out.mkdir(parents=True, exist_ok=True)
     adapter = plan["adapter"]
+    if adapter == 'release':
+        requests = [read_json(p) for p in paths if p.suffix == '.json' and p.stat().st_size < 100_000]
+        if any(isinstance(r, dict) and r.get('kind') == 'youtube_operation_v1' and r.get('action') == 'verify_public' for r in requests):
+            from .public_check import run_public_check
+            result = run_public_check(root, step)
+            return result, 'accepted' if result['status'] == 'ACCEPTED' else 'uncertain'
     if adapter in {"creative", "metadata", "quality", "visual", "release"}:
         from .worker import run_stage
         result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
