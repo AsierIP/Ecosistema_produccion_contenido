@@ -184,6 +184,10 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
                 if isinstance(value, dict) and value.get('kind') == 'quality_preflight_v1' and value.get('scope') == 'native_segment':
                     unit_id = value['unit_id']
     limits = read_json(root / "config/models.json").get("runner_limits", {})
+    native_context = None
+    if role == 'quality':
+        from .native_judge import prepare
+        native_context = prepare(packet, root)
     configured_timeout = limits.get("timeout_seconds_by_role", {}).get(role, 300)
     timeout = min(timeout, configured_timeout) if timeout is not None else configured_timeout
     with closing(sqlite3.connect(root / ".runtime/agent-runs.sqlite3", isolation_level=None)) as con:
@@ -238,7 +242,11 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
             if completed.returncode:
                 errors.append(f"El agente terminó con código {completed.returncode}; revisar el registro local")
             else:
-                receipt = read_json(Path(packet["receipt_path"]))
+                if native_context:
+                    from .native_judge import seal
+                    receipt = seal(native_context)
+                else:
+                    receipt = read_json(Path(packet["receipt_path"]))
                 blockers = receipt.get('blockers', [])
                 if role == 'visual':
                     from .visual_worker import seal_receipt

@@ -1,0 +1,201 @@
+{
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": [
+        "ACCEPT",
+        "REJECT",
+        "BLOCK"
+      ]
+    },
+    "checks": {
+      "type": "object",
+      "properties": {
+        "full_decode_pass": {
+          "type": "boolean"
+        },
+        "normal_speed_playback_pass": {
+          "type": "boolean"
+        },
+        "start_reference_metrics_pass": {
+          "type": "boolean"
+        },
+        "first_half_second_continuity_pass": {
+          "type": "boolean"
+        },
+        "direct_camera_gaze_absent": {
+          "type": "boolean"
+        },
+        "portrait_pose_absent": {
+          "type": "boolean"
+        },
+        "narration_action_alignment_pass": {
+          "type": "boolean"
+        },
+        "causal_emotion_progression_pass": {
+          "type": "boolean"
+        },
+        "exit_state_achieved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "full_decode_pass",
+        "normal_speed_playback_pass",
+        "start_reference_metrics_pass",
+        "first_half_second_continuity_pass",
+        "direct_camera_gaze_absent",
+        "portrait_pose_absent",
+        "narration_action_alignment_pass",
+        "causal_emotion_progression_pass",
+        "exit_state_achieved"
+      ],
+      "additionalProperties": false
+    },
+    "full_playback_observation": {
+      "type": "string"
+    },
+    "exit_state_observation": {
+      "type": "string"
+    },
+    "camera_gaze_observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "character": {
+            "type": "string"
+          },
+          "observed_target": {
+            "type": "string"
+          },
+          "observed_behavior": {
+            "type": "string"
+          },
+          "evidence_frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 124
+            },
+            "minItems": 2
+          }
+        },
+        "required": [
+          "character",
+          "observed_target",
+          "observed_behavior",
+          "evidence_frames"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 2
+    },
+    "semantic_alignment_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "narration_text": {
+            "type": "string"
+          },
+          "visible_action": {
+            "type": "string"
+          },
+          "alignment_rationale": {
+            "type": "string"
+          },
+          "evidence_frames": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 124
+            },
+            "minItems": 2
+          }
+        },
+        "required": [
+          "narration_text",
+          "visible_action",
+          "alignment_rationale",
+          "evidence_frames"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "emotion_evidence": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string"
+        },
+        "turn": {
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "causal_trigger": {
+          "type": "string"
+        },
+        "evidence_frames": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 124
+          },
+          "minItems": 3
+        }
+      },
+      "required": [
+        "start",
+        "turn",
+        "end",
+        "causal_trigger",
+        "evidence_frames"
+      ],
+      "additionalProperties": false
+    },
+    "defects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "frame_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 124
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "frame_index",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limitations": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "decision",
+    "checks",
+    "full_playback_observation",
+    "exit_state_observation",
+    "camera_gaze_observations",
+    "semantic_alignment_evidence",
+    "emotion_evidence",
+    "defects",
+    "limitations"
+  ],
+  "additionalProperties": false
+}

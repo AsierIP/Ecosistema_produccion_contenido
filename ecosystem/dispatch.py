@@ -40,6 +40,9 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     review_path = root / 'config/review.json'
     review_policy = read_json(review_path) if review_path.exists() else {}
     prompt += '\nPolítica vigente de revisión: ' + json.dumps(review_policy, ensure_ascii=False)
+    native_protocol = root / 'ecosystem/native_judge.py'
+    if role == 'quality' and native_protocol.exists():
+        prompt += '\nNative judgment protocol hash: ' + file_hash(native_protocol)
     fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt, "youtube_release": release_policy, "receipt_schema": read_json(root / "config/receipt.schema.json"), "runner_limits": models.get("runner_limits", {}), "validator_version": 2}, inputs=refs, model=routing)
     output = root / ".runtime/jobs" / job_id / role / fingerprint[:16]
     packet = {
