@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from datetime import datetime
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -131,6 +130,29 @@ class Queue:
         return [{**dict(row), "payload": json.loads(row["payload"]),
                  "result": json.loads(row["result"]) if row["result"] else None} for row in rows]
 
+    def advance_completed_releases(self):
+        """Resume after a close between recording a release and queuing its next step."""
+        from .release_worker import enqueue_release_followup
+        steps = self.list()
+        created = []
+        for step in steps:
+            if step['adapter'] != 'release' or step['state'] != 'accepted':
+                continue
+            if any(s['adapter'] == 'release' and step['id'] in s['payload'].get('depends_on', []) for s in steps):
+                continue
+            error = self.root / '.runtime/jobs' / step['job_id'] / 'handoffs' / ('error-release-' + step['id'] + '.json')
+            try:
+                next_id = enqueue_release_followup(self.root, step, step['result'], self)
+                if next_id:
+                    created.append(next_id)
+                if error.exists() and read_json(error).get('status') != 'resolved':
+                    write_json(error, {'status': 'resolved'})
+            except (ValueError, KeyError, OSError, TypeError, RuntimeError) as exc:
+                problem = {'status': 'blocked', 'reason': str(exc)}
+                if not error.exists() or read_json(error) != problem:
+                    write_json(error, problem)
+        return created
+
     def claim(self, step_id):
         with self.connect() as con:
             con.execute("BEGIN IMMEDIATE")
@@ -200,27 +222,9 @@ def execute_step(root, step):
         result = run_stage(plan["job_id"], adapter, paths, root=root, execute=True)
         accepted = result.get("status") == "ACCEPTED" or (result.get("status") == "ALREADY_RECORDED" and result.get("run", {}).get("state") == "accepted")
         if adapter == 'release' and accepted:
-            from .release_worker import release_request
-            from .store import Store
-            receipt_path = Path(result.get('receipt_path') or result['run']['receipt_path'])
-            packet = read_json(receipt_path.parent / 'packet.json')
-            request = release_request(packet)
-            if request['action'] in {'upload', 'schedule'}:
-                with Store(root / '.runtime/production.sqlite3') as store:
-                    upload = next(i for i in store.list_intents(plan['job_id'])
-                                  if i['platform'] == 'youtube' and i['action'] == 'upload' and i['state'] == 'verified')
-                    schedule = next(i for i in store.list_intents(plan['job_id'])
-                                    if i['platform'] == 'youtube' and i['action'] == 'schedule')
-                next_action = 'schedule' if request['action'] == 'upload' else 'verify_public'
-                request_path = out / (next_action + '-request.json')
-                request.pop('metadata', None)
-                write_json(request_path, {**request, 'action': next_action, 'upload_intent_id': upload['id']})
-                inputs = [request_path] + [Path(request[k]) for k in ('master_path', 'qa_path', 'metadata_path')]
-                followup = {**plan, 'inputs': [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in inputs],
-                            'depends_on': [step['id']]}
-                if next_action == 'verify_public':
-                    followup['not_before'] = datetime.fromisoformat(schedule['payload']['publishAt'].replace('Z', '+00:00')).timestamp() + 30
-                result['next_step'] = Queue(root).register(followup)
+            # The controller persists accepted first, then resumes this handoff
+            # on every tick. A crash here must not replay a remote operation.
+            result['followup_pending'] = True
     elif adapter == 'captions':
         from .captions import prepare_captions
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:

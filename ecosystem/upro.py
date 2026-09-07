@@ -171,6 +171,7 @@ class Controller:
                 advance_metadata(self.root, self.queue)
                 from .delivery import advance_delivery
                 advance_delivery(self.root, self.queue)
+                self.queue.advance_completed_releases()
                 steps = self.queue.list()
                 active_channels = {v["channel"] for v in self.active.values()}
                 gpu_active = any(v["adapter"] in GPU_ADAPTERS for v in self.active.values())
