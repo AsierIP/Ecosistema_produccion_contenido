@@ -4,9 +4,48 @@ import json
 import shutil
 import subprocess
 import hashlib
+import sqlite3
 from datetime import datetime, timezone
 from .cache import file_hash
 from .config import read_json, write_json
+
+
+def recover_native_rejection(root, step, queue):
+    """A sealed negative decision may survive a timeout; never recover a partial PASS."""
+    if step['adapter'] != 'segment_quality' or step['state'] != 'blocked' or (step.get('result') or {}).get('status') != 'UNCERTAIN':
+        return False
+    folder = Path(step['result']['receipt_path']).parent
+    selection_path = folder / 'native-selection.json'
+    if not selection_path.exists():
+        return False
+    selection = read_json(selection_path)
+    packet = read_json(folder / 'packet.json')
+    if (selection.get('decision') != 'REJECT' or selection.get('job_id') != step['job_id']
+            or selection.get('reviewer') != {'role':'quality','model':'gpt-5.6-sol','reasoning_effort':'medium','independent':True}
+            or not selection.get('defects')):
+        return False
+    for ref in packet['inputs']:
+        if file_hash(Path(ref['path'])) != ref['sha256']:
+            raise ValueError('Timed-out native QA inputs changed')
+    candidate = selection['candidate']
+    if candidate.get('qa_verdict') != 'FAIL' or not candidate.get('rejection_causes'):
+        return False
+    if not any(r['path'] == candidate['path'] and r['sha256'] == candidate['sha256'] for r in packet['inputs']):
+        raise ValueError('Native rejection belongs to another candidate')
+    visual_path = Path(selection['visual_review_receipt_path']).resolve()
+    if not visual_path.is_relative_to(folder.resolve()) or file_hash(visual_path) != selection['visual_review_receipt_sha256'].lower():
+        raise ValueError('Native visual rejection lost integrity')
+    visual = read_json(visual_path)
+    if visual.get('decision') != 'FAIL' or visual.get('candidate_sha256') != candidate['sha256']:
+        return False
+    evidence = {'checked':True,'reason':'Recovered sealed independent REJECT after final-message timeout. No candidate accepted and no remote generation repeated.',
+                'selection_path':str(selection_path),'selection_sha256':file_hash(selection_path)}
+    write_json(folder / 'negative-reconciliation.json', evidence)
+    with sqlite3.connect(Path(root) / '.runtime/agent-runs.sqlite3') as db:
+        db.execute("UPDATE runs SET state='rejected' WHERE cache_key=? AND state='uncertain' AND role='quality' AND job_id=?",
+                   (packet['cache_key'],step['job_id']))
+    queue.retire(step['id'], evidence)
+    return True
 
 
 def extract_native_endpoints(video, output, sequence_id, segment_id):

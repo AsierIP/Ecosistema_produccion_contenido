@@ -185,6 +185,9 @@ class Controller:
                 if self.controls["paused"] or self.stopping:
                     return
                 from .workflow import seed_ready_jobs, advance_production
+                from .segment_review import recover_native_rejection
+                for native_step in self.queue.list():
+                    recover_native_rejection(self.root, native_step, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
                 advance_production(self.root, self.queue)
