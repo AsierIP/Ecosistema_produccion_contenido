@@ -7,7 +7,7 @@ const { acquireProfile } = require('./upro-browser-session.cjs');
 async function main() {
   const [rootArg, channelId, mode] = process.argv.slice(2);
   const root = path.resolve(rootArg);
-  if (!['check', 'status', 'connect', 'inspect', 'inspect-upload', 'inspect-content', 'inspect-shorts'].includes(mode) || !/^[a-z0-9-]+$/.test(channelId)) {
+  if (!['check', 'status', 'connect', 'inspect', 'inspect-upload', 'inspect-content', 'inspect-shorts', 'upload'].includes(mode) || !/^[a-z0-9-]+$/.test(channelId)) {
     throw new Error('Invalid browser operation');
   }
   const channel = JSON.parse(fs.readFileSync(path.join(root, 'channels', channelId + '.json'), 'utf8').replace(/^\uFEFF/, ''));
@@ -94,6 +94,13 @@ async function main() {
     const identityMatch = current.hostname === 'studio.youtube.com' && current.pathname === '/channel/' + account;
     const studioControls = await page.getByRole('button', {name: /^(Crear|Create)$/}).first().isVisible();
     saveStatus(identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED');
+    if (mode === 'upload') {
+      if (!identityMatch || !studioControls) throw new Error('Exact channel authentication required');
+      const request = JSON.parse(fs.readFileSync(process.env.UPRO_UPLOAD_REQUEST, 'utf8'));
+      if (request.channel_id !== channelId || request.expected_account_id !== account) throw new Error('Upload channel mismatch');
+      await require('./upro-youtube-upload.cjs').upload(page, request);
+      return;
+    }
     if (['inspect', 'inspect-upload', 'inspect-content', 'inspect-shorts'].includes(mode) && identityMatch && studioControls) {
       if (['inspect-content', 'inspect-shorts'].includes(mode)) {
         await page.getByRole('menuitem', {name: /^(Contenido|Content)$/}).click();

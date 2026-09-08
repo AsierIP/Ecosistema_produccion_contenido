@@ -26,7 +26,7 @@ def connection_observation(channel_id, *, root=ROOT):
 def browser_command(channel_id, mode, *, root=ROOT):
     if channel_id not in {c['id'] for c in load_channels(root)}:
         raise ValueError('Unknown channel')
-    if mode not in {'check', 'status', 'connect', 'inspect', 'inspect-upload', 'inspect-content', 'inspect-shorts'}:
+    if mode not in {'check', 'status', 'connect', 'inspect', 'inspect-upload', 'inspect-content', 'inspect-shorts', 'upload'}:
         raise ValueError('Unknown browser operation')
     local_path = Path(root) / 'local.json'
     runtime = read_json(local_path).get('browser_runtime', {}) if local_path.exists() else {}

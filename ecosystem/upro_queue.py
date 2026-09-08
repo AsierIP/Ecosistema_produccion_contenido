@@ -226,6 +226,10 @@ def execute_step(root, step):
     adapter = plan["adapter"]
     if adapter == 'release':
         requests = [read_json(p) for p in paths if p.suffix == '.json' and p.stat().st_size < 100_000]
+        if any(isinstance(r, dict) and r.get('kind') == 'youtube_operation_v1' and r.get('action') == 'upload' for r in requests):
+            from .youtube_upload import run_upload
+            result = run_upload(root, step)
+            return result, 'accepted' if result['status'] == 'ACCEPTED' else 'uncertain'
         if any(isinstance(r, dict) and r.get('kind') == 'youtube_operation_v1' and r.get('action') == 'verify_public' for r in requests):
             from .public_check import run_public_check
             result = run_public_check(root, step)

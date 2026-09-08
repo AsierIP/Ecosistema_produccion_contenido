@@ -218,7 +218,7 @@ class Controller:
                     cid = channel["channel_id"]
                     if len(self.active) >= self.max_workers:
                         break
-                    if not self.enabled(cid) or cid in active_channels or channel["job_id"] in unresolved or channel['job_id'] in native_blocked:
+                    if not self.enabled(cid) or cid in active_channels or channel['job_id'] in native_blocked:
                         continue
                     # A blocked/uncertain step requires inspection; no automatic retry loop.
                     relevant = [s for s in steps if s["job_id"] == channel["job_id"]]
@@ -227,6 +227,10 @@ class Controller:
                     for step in relevant:
                         if step["state"] != "queued" or (step["mode"] == "production" and not channel["ready"]):
                             continue
+                        if channel['job_id'] in unresolved:
+                            from .youtube_upload import resumable_upload
+                            if not resumable_upload(self.root, step):
+                                continue
                         from .native_timeline import native_voice_ready
                         if not native_voice_ready(step, self.queue):
                             continue

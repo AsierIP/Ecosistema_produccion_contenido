@@ -50,6 +50,21 @@ class ReleaseWorkerTests(unittest.TestCase):
         with Store(self.root / '.runtime/production.sqlite3') as store:
             self.assertEqual(store.list_intents(), [])
 
+    def test_resume_only_bound_known_draft_never_unknown_file_selection(self):
+        from ecosystem.youtube_upload import resumable_upload
+        intent = start_operation(self.packet, self.root)
+        step = {'adapter': 'release', 'job_id': self.job['id'], 'payload': {'inputs': self.packet['inputs']}}
+        path = self.root / '.runtime/jobs' / self.job['id'] / 'release/own-browser-upload/upload-journal.json'
+        journal = {'intent_id': intent['id'], 'master_sha256': intent['master_sha256'],
+                   'account_id': self.account, 'stage': 'draft_created', 'video_id': 'abcdefghijk'}
+        self.assertFalse(resumable_upload(self.root, step))
+        write_json(path, journal)
+        self.assertTrue(resumable_upload(self.root, step))
+        for changed in ({'video_id': ''}, {'stage': 'file_selection_started'},
+                        {'master_sha256': '0' * 64}, {'account_id': 'wrong'}, {'intent_id': 'wrong'}):
+            write_json(path, {**journal, **changed})
+            self.assertFalse(resumable_upload(self.root, step))
+
     def test_browser_preflight_rejects_missing_auth_and_wrong_account_without_intent(self):
         ready = {'status': 'CHANNEL_READY', 'authenticated': True,
                  'channel_id': 'sabias-que', 'expected_account_id': self.account}
