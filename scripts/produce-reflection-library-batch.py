@@ -14,6 +14,8 @@ from ecosystem.reflection_media import build_library_sequence
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--workspace',type=Path,required=True)
+    parser.add_argument('--groups',type=int,nargs='+',choices=[2,3,4],default=[2,3,4])
+    parser.add_argument('--use-uploaded-references',action='store_true')
     args=parser.parse_args()
     p=args.workspace.resolve(strict=True)
     plan=read_json(p/'plan.json')
@@ -43,7 +45,8 @@ def main():
         if path.exists():
             if read_json(path)!=data: raise ValueError('Existing batch request changed')
         else: write_json(path,data)
-    run('upro-reflection-upload.cjs',p/'upload-batch-02.json','upload-remaining')
+    if not args.use_uploaded_references:
+        run('upro-reflection-upload.cjs',p/'upload-batch-02.json','upload-remaining')
     groups=[['coast','courtyard','mountain-lake'],['village-garden','desert-oasis','waterfall'],['vineyard']]
     motions={'coast':'Waves continuously break into foam; beach grasses sway.',
         'courtyard':'Water pours steadily from the fountain; vines and curtain sway gently.',
@@ -54,6 +57,8 @@ def main():
         'vineyard':'Vine leaves and loose mantle fabric sway naturally in the breeze.'}
     completed=[]
     for group_index,scenes in enumerate(groups,2):
+        if group_index not in args.groups:
+            continue
         items=[]
         for scene in scenes:
             for take,camera in enumerate(['Very slow optical zoom in.','Locked-off static camera.','Very slow optical zoom out.'],1):
@@ -70,7 +75,7 @@ def main():
             sources=[output/f'native-{scene_index*3+i:02}.mp4' for i in [1,2,3]]
             result=build_library_sequence(sources,p.parent/'sequence-library'/f'{scene}-pose2-v1.mp4')
             completed.append(dict(environment=scene,path=result['path'],sha256=result['sha256'],body_pose=poses[scene],quality_review='pending'))
-            write_json(p/'remaining-sequences.json',dict(sequences=completed))
+            write_json(p/('remaining-sequences-'+ '-'.join(map(str,args.groups))+'.json'),dict(sequences=completed))
             print(json.dumps(dict(environment=scene,status='TECHNICAL_PASS',review='pending')),flush=True)
     write_json(progress,dict(stage='sequences_rendered',status='independent_review_pending',publication='hold_for_review'))
 

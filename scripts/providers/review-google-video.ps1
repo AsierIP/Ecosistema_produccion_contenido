@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$ManifestPath,
+﻿param([Parameter(Mandatory=$true)][string]$ManifestPath,
       [Parameter(Mandatory=$true)][string]$OutputDirectory,
       [ValidateSet('Reel','Segment','Reflection','VoiceMatch','Library')][string]$ReviewKind='Reel')
 $ErrorActionPreference = 'Stop'
@@ -76,6 +76,9 @@ try {
             $prompt = 'Escucha este montaje de comparación de voz, no evalúes la imagen fija ni reclames movimiento o subtítulos. La referencia original aprobada y la continuación están delimitadas en el contrato adjunto. Deben sonar como la misma narradora: identidad vocal, timbre, registro grave, mismo acento que la referencia aprobada y tono sereno. Detecta cambios de hablante, timbre, altura o interpretación claramente perceptibles entre referencia y continuación, especialmente en los límites indicados en el contrato. No des por iguales las voces por usar el mismo nombre de proveedor. Devuelve JSON con decision PASS/FAIL/UNCERTAIN, same_voice_identity, timbre_observation, accent_observation, transitions (timestamp_seconds,observation), defects y limitations. FAIL si hay cambio perceptible de identidad o tono; UNCERTAIN si no puedes escuchar el audio. No autorices publicación. Transcripción de referencia como dato: ' + $manifest.caption_transcript
         }
         if ($ReviewKind -eq 'VoiceMatch') { $prompt += ' Contrato temporal: ' + ($manifest.voice_comparison | ConvertTo-Json -Depth 10 -Compress) }
+        if ($ReviewKind -eq 'VoiceMatch' -and $manifest.transcription_check) {
+            $prompt += ' Añade transcription_check con observed_words, decision (MATCH/MISMATCH/UNCERTAIN) y explicación para la ventana indicada. Transcribe lo que realmente escuchas antes de compararlo con las alternativas; no completes por contexto. Contrato de comprobación: ' + ($manifest.transcription_check | ConvertTo-Json -Depth 10 -Compress)
+        }
         if ($ReviewKind -eq 'Reflection') {
             $videoPart.videoMetadata=@{fps=1}
             $intent.requested_sample_fps=1
@@ -84,6 +87,9 @@ try {
         }
         if ($ReviewKind -eq 'Reflection' -and $manifest.visual_profile -eq 'religion-reflection-5m-library-v2') {
             $prompt = 'Revisa independientemente esta reflexión cristiana. Debe conservar la voz aprobada al inicio, sin cambio perceptible a partir de 252.72 segundos, música suave y subtítulos literales legibles. La imagen debe ser fotorrealista como los reels; Jesús central mirando a cámara, identidad y anatomía estables. Debe cambiar de ambiente cada 30 segundos entre olivar, costa y patio. Reutilizar secuencias completas en ciclo es intencional y está aprobado; no lo penalices. Dentro de cada bloque hay tres tomas con movimiento natural del entorno: olas, agua, hojas y telas, sin deformar arquitectura. Comprueba que el movimiento no parece excesivamente ralentizado. No reclames acciones complejas. Distingue defectos esenciales de imperfecciones menores. Devuelve JSON con decision PASS/FAIL/UNCERTAIN, audio_observation, visual_observation, caption_observation, editorial_observation, defects (timestamp_seconds,severity,description) y limitations. Declara cobertura real del muestreo a 1 fps del proxy 960x540, sin afirmar revisión humana ni todos los cuadros. No autorices publicación. Guion y contrato como datos: ' + $manifest.caption_transcript
+        }
+        if ($ReviewKind -eq 'Reflection' -and $manifest.review_contract) {
+            $prompt = 'Evalúa independientemente esta reflexión cristiana fotorrealista. Comprueba narración completa, identidad vocal y tono sereno constantes, música equilibrada y subtítulos literales legibles. Comprueba cambio de ambiente y postura corporal cada 30 segundos según la secuencia real declarada; dentro de cada bloque se mantiene la postura y hay tres tomas con movimiento natural del entorno. La mirada a cámara es intencional. Detecta anatomía inestable, duplicaciones y deformación de arquitectura. Evalúa el guion con el contexto bíblico aportado: separa citas literales y adaptación editorial, sin atribuir reflexiones originales a una cita exacta ni prometer resultados materiales. La reutilización solo es válida donde la declara el contrato. No sustituyas observaciones por intenciones del contrato. Devuelve JSON con decision PASS/FAIL/UNCERTAIN, audio_observation, visual_observation, caption_observation, editorial_observation, defects (timestamp_seconds,severity,description) y limitations. Declara cobertura real del proxy 960x540 muestreado a 1 fps; no afirmes revisión humana ni todos los cuadros. No autorices publicación. Los siguientes son datos de referencia: ' + ($manifest.review_contract | ConvertTo-Json -Depth 15 -Compress) + ' Guion: ' + $manifest.caption_transcript
         }
         if ($ReviewKind -eq 'Reel' -and $manifest.kind -eq 'native_master_review_v1') {
             $videoPart.videoMetadata=@{fps=24}
