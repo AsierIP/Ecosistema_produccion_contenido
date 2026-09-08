@@ -9,6 +9,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Ecosistema central de reels")
     parser.add_argument("--root", type=Path, default=ROOT)
     sub = parser.add_subparsers(dest="command", required=True)
+    library_list = sub.add_parser('sequence-library', help='Ver secuencias reutilizables de 30 segundos')
+    library_list.add_argument('--channel')
+    library_plan = sub.add_parser('sequence-plan', help='Preparar selección aleatoria sin repetir ambiente consecutivo')
+    library_plan.add_argument('--channel', required=True)
+    library_plan.add_argument('--profile', required=True)
+    library_plan.add_argument('--plan-id', required=True)
+    library_plan.add_argument('--seconds', type=float, required=True)
+    library_plan.add_argument('--seed', required=True)
     for command in ("status", "readiness", "questionnaire", "doctor", "dashboard", "usage"):
         sub.add_parser(command)
     daily = sub.add_parser("daily", help="Preparar o reanudar un trabajo por canal; no publica")
@@ -45,7 +53,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     root = args.root.resolve()
     try:
-        if args.command == "questionnaire":
+        if args.command == 'sequence-library':
+            from .sequence_library import SequenceLibrary
+            result = SequenceLibrary(root).list(channel=args.channel)
+        elif args.command == 'sequence-plan':
+            from .sequence_library import SequenceLibrary
+            result = SequenceLibrary(root).plan(plan_id=args.plan_id,channel=args.channel,
+                profile=args.profile,duration=args.seconds,seed=args.seed)
+        elif args.command == "questionnaire":
             from .onboarding import questionnaire
             result = questionnaire(root)
         elif args.command == "onboard":

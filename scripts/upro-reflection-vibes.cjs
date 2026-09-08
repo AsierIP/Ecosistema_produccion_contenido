@@ -8,7 +8,8 @@ const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex
 const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
 (async()=>{
  const r=read(requestPath),fingerprint=hash(requestPath);
- if(r.profile!=='religion-reflection-5m-prototype-v1'||r.items.length!==10||!/^https:\/\/vibes\.ai\/projects\/[a-f0-9-]+$/.test(r.project_url))throw Error('Invalid reflection request');
+ const validCount=r.profile==='religion-reflection-5m-prototype-v1'?r.items.length===10:r.profile==='religion-reflection-5m-library-v2'&&r.items.length>=1&&r.items.length<=9;
+ if(!validCount||!/^https:\/\/vibes\.ai\/projects\/[a-f0-9-]+$/.test(r.project_url))throw Error('Invalid reflection request');
  const output=path.resolve(r.output);if(!/^E:\\/i.test(output))throw Error('Media must stay on E:');fs.mkdirSync(output,{recursive:true});
  const profile=path.join(root,'.runtime/browser-profiles/religion');
  const releaseProfile=await acquireProfile(profile,10000);
@@ -39,7 +40,7 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
      if(!all.some(v=>v.id===item.existing_media_id&&v.video))throw Error('Existing video not present');
      intent={state:'generated',media_id:item.existing_media_id,request_sha256:fingerprint};write(receipt,intent);
     }else{
-     if(!/^batch-[a-f0-9-]+-content-[0-3]$/.test(item.source_media_id))throw Error('Invalid source identity');
+     if(!/^[A-Za-z0-9_-]+$/.test(item.source_media_id))throw Error('Invalid source identity');
      await page.goto(r.project_url+'/content/'+item.source_media_id);
      await page.getByRole('button',{name:'Manual animate',exact:true}).click();
      const dialog=page.getByRole('dialog');await dialog.getByRole('textbox',{name:'Animate',exact:true}).fill(item.prompt);
@@ -48,8 +49,8 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
      // Keep the editor alive until it commits the animation to the project.
      // Navigating immediately can abandon the editor's asynchronous save.
      await dialog.waitFor({state:'hidden',timeout:15000});
-     await page.waitForTimeout(4000);
-     await page.getByRole('button',{name:'Animating...',exact:true}).waitFor({state:'hidden',timeout:180000});
+     await page.waitForTimeout(20000);
+     await page.getByText('Animating...',{exact:true}).waitFor({state:'hidden',timeout:180000});
      await page.waitForTimeout(2000);
     }
    }

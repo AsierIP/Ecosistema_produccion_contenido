@@ -12,3 +12,6 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 @media(max-width:1150px) and (min-width:881px){.header-buttons{flex-direction:column;align-items:flex-end;gap:6px}.header-buttons .button{min-height:30px;padding:6px 10px}}
 @media(max-width:610px){.header-actions{flex-wrap:wrap}.header-buttons{width:100%;justify-content:flex-start}.header-actions .connection-status{margin-bottom:2px}#shutdown-help{margin-top:0}}
+ .sequence-card { padding: 20px; border: 1px solid #303b39; border-radius: 18px; background: #171d1c; }
+ .sequence-card h3 { margin-top: 0; }
+ .sequence-video { width: 100%; border-radius: 10px; background: #000; }

@@ -426,6 +426,19 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(200, {"app": "upro", "root": str(controller.root), "version": "0.2.0"})
             elif path == "/api/status":
                 self.respond(200, controller.status())
+            elif path == '/api/sequences':
+                from .sequence_library import SequenceLibrary
+                rows = SequenceLibrary(controller.root).list()
+                self.respond(200, {'sequences':[{'id':r['id'],'environment':r['environment'],
+                    'channel':r['channel'],'duration_seconds':30,
+                    'ready':json.loads(r['metadata']).get('quality_status')=='PASS',
+                    'url':'/api/sequence-media/'+r['id']} for r in rows]})
+            elif path.startswith('/api/sequence-media/'):
+                from .sequence_library import SequenceLibrary
+                library = SequenceLibrary(controller.root)
+                row = library.get(path.removeprefix('/api/sequence-media/'))
+                library.verify(row)
+                self.send_media(Path(row['path']))
             elif path.startswith("/api/media/"):
                 self.send_media(controller.media(path.removeprefix("/api/media/")))
             elif path in {"/", "/static/app.css", "/static/app.js"}:
@@ -435,6 +448,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.respond(404, {"error": "No encontrado"})
         except (KeyError, FileNotFoundError):
             self.respond(404, {"error": "No disponible"})
+        except ValueError:
+            self.respond(409, {"error": "El recurso ha cambiado; requiere comprobación"})
         except (BrokenPipeError, ConnectionResetError):
             pass
 

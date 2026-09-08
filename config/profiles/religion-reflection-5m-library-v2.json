@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "id": "religion-reflection-5m-library-v2",
+  "line": "religion-five-minutes",
+  "editorial": "Christian spiritual self-help with the approved script and source distinctions",
+  "visual": {
+    "style": "photorealistic cinematic, matching the Religion reels",
+    "central_character": "Jesus looking into camera",
+    "environment_change_seconds": 30,
+    "library_reuse": true,
+    "selection": "seeded random, balance usage and avoid adjacent same environment",
+    "camera": "fixed, subtle optical zoom",
+    "environment_motion": "visible natural waves, flowing fountain, wind in vegetation and fabric",
+    "native_slowdown_max": 2,
+    "second_slowdown": false,
+    "interpolate_across_cuts": false
+  },
+  "voice": {
+    "id": "Gacrux",
+    "locale": "es-ES",
+    "speed_factor": 1.0,
+    "approved": true,
+    "reference": "original first twelve takes of CRF-001; references remain local",
+    "direction": "Pronuncia exclusivamente la TRANSCRIPCIÓN con la identidad Gacrux. Mujer adulta, contralto grave, cálida y serena. Cadencia contemplativa natural. No añadas, omitas, traduzcas, repitas ni cambies palabras. Sin música, efectos, canto, susurro teatral ni otra voz. Empieza a hablar de inmediato y termina al acabar el texto, sin silencio largo.",
+    "rejected": "voice direction used for the tail of prototype v1",
+    "continuity_review_required": true,
+    "continuation": {
+      "method": "local reference-conditioned synthetic voice continuation",
+      "provider": "Qwen3-TTS-12Hz-1.7B-Base",
+      "reference_required": true,
+      "approved_reference_overrides_locale_label": true,
+      "independent_identity_and_literal_transcript_review_required": true,
+      "qualification_scope": "CRF-001 continuation; future outputs still require review"
+    }
+  },
+  "music": {
+    "approved": true,
+    "reuse": "same licensed ambient track approved in CRF-001; local license and source hash required"
+  },
+  "library": {
+    "duration_seconds": 30,
+    "fps": 24,
+    "width": 1920,
+    "height": 1080,
+    "silent": true,
+    "captions": false,
+    "database": ".runtime/sequence-library.sqlite3",
+    "selection_requires_quality_pass": true
+  }
+}

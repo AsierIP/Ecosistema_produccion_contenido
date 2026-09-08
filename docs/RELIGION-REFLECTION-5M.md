@@ -1,10 +1,33 @@
 # Reflexiones de cinco minutos
 
-Perfil independiente: `config/profiles/religion-reflection-5m-prototype-v1.json`.
+Perfil vigente: `config/profiles/religion-reflection-5m-library-v2.json`.
+El perfil `religion-reflection-5m-prototype-v1` se conserva para reproducir el primer prototipo.
 Esta línea combina autoayuda espiritual cristiana original con fuentes RV1909.
 No modifica el contrato de los Shorts ni sus reglas de mirada diegética.
 
-## Norma visual del prototipo
+## Biblioteca fotorrealista vigente
+
+- Estética fotorrealista cinematográfica como los reels, misma identidad de Jesús.
+- Cambio de lugar cada 30 segundos, con movimiento visible de agua, vegetación y telas.
+- Cada secuencia silenciosa contiene tres tomas de 10 segundos. Cada toma nativa
+  se interpola a 2x una sola vez; no se vuelve a ralentizar el resultado.
+- Reutilización aprobada en ciclos o mediante selección aleatoria equilibrada.
+  No se colocan ambientes iguales consecutivos. La semilla y el plan quedan
+  guardados: reintentar un montaje no cambia la selección.
+- Los medios quedan fuera de Git. SQLite guarda identidad, hashes, procedencia,
+  revisión y planes en `.runtime/sequence-library.sqlite3`.
+- Solo las secuencias con revisión PASS entran en la selección automática.
+  Cambiar un archivo o su evidencia invalida su uso.
+- Upro muestra la biblioteca y sus reproductores en `/#library`.
+  `sequence-library` lista activos; `sequence-plan` prepara un plan recuperable.
+
+La voz y música originales aprobadas son la referencia. La continuación local
+por clonación requiere una muestra aprobada intacta, transcripción exacta,
+modelo instalado, reserva GPU y comprobación de identidad vocal y texto antes
+de usarla. El nombre del proveedor o de la voz no acredita continuidad audible.
+No se cambian voces ni se aceleran para completar el metraje.
+
+## Norma histórica del primer prototipo
 
 - Jesús es el personaje central y mira directamente al espectador.
 - Una imagen de identidad común, diez animaciones sencillas y composición fija.

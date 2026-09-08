@@ -500,5 +500,27 @@
     scheduleRefresh();
   });
   window.addEventListener("online", () => { if (!mutating && !closedByUser) refresh(); });
+  async function loadSequenceLibrary() {
+    if (location.hash !== '#library') return;
+    const container = $('sequence-library');
+    try {
+      const response = await fetch('/api/sequences');
+      if (!response.ok) throw new Error('La biblioteca estará disponible al actualizar el motor de Upro.');
+      const data = await response.json();
+      container.replaceChildren();
+      if (!data.sequences.length) container.append(node('p','', 'Todavía no hay secuencias guardadas.'));
+      for (const item of data.sequences) {
+        const card = node('article','sequence-card');
+        card.append(node('h3','',({olive:'Olivar',coast:'Costa',courtyard:'Patio con fuente'})[item.environment] || item.environment));
+        card.append(node('p','',item.ready ? '30 segundos · Lista para reutilizar' : '30 segundos · En comprobación'));
+        const video = node('video','sequence-video');
+        video.controls = true; video.preload = 'none';
+        video.src = item.url;
+        card.append(video); container.append(card);
+      }
+    } catch(error) { container.replaceChildren(node('p','',errorText(error))); }
+  }
+  window.addEventListener('hashchange', loadSequenceLibrary);
+  loadSequenceLibrary();
   refresh().finally(scheduleRefresh);
 })();

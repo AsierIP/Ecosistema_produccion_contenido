@@ -20,8 +20,8 @@ def counted_frames(path):
 def slow_block(source, output, frames, *, root=ROOT, multiplier=6):
     """Interpolate one native shot on the GPU, then play its frames at 24 fps."""
     source, output = Path(source).resolve(strict=True), Path(output).resolve()
-    if not isinstance(frames, int) or not 24 <= frames <= 24 * 40 or multiplier != 6:
-        raise ValueError('Reflection prototype requires bounded sixfold slow motion')
+    if not isinstance(frames, int) or not 24 <= frames <= 24 * 40 or multiplier not in (2, 6):
+        raise ValueError('Reflection interpolation requires a bounded 2x or legacy 6x operation')
     receipt_path = output.with_suffix('.json')
     binding = {'source_sha256': file_hash(source), 'frames': frames, 'multiplier': multiplier}
     if receipt_path.exists():
@@ -96,6 +96,38 @@ def block_frame_counts(duration, count=10):
     return [total // count + (i < total % count) for i in range(count)]
 
 
+def build_library_sequence(sources, output, *, root=ROOT):
+    """Three native shots slowed once to 10 seconds each; reusable silent 30s."""
+    sources, output = list(map(Path,sources)), Path(output)
+    if len(sources)!=3:
+        raise ValueError('Three native shots are required')
+    binding=[{'path':str(p.resolve()),'sha256':file_hash(p)} for p in sources]
+    receipt=output.with_suffix('.json')
+    if output.exists():
+        saved=read_json(receipt)
+        if saved['sources']!=binding or file_hash(output)!=saved['sha256']:
+            raise ValueError('Sequence changed or is incomplete')
+        return saved
+    work=output.parent/(output.stem+'-work')
+    work.mkdir(parents=True,exist_ok=True)
+    clips=[]
+    for i,source in enumerate(sources,1):
+        clip=work/f'clip-{i}.mp4'
+        slow_block(source,clip,240,root=root,multiplier=2)
+        clips.append(clip)
+    listing=work/'clips.txt'
+    listing.write_text(''.join("file '"+str(p.resolve()).replace('\\','/').replace("'","'\\''")+"'\n" for p in clips),encoding='utf-8')
+    code=_run([discover()['ffmpeg'],'-nostdin','-n','-v','error','-f','concat','-safe','0','-i',str(listing),
+               '-an','-c:v','copy','-movflags','+faststart',str(output)],work/'concat.log')
+    if code or not decode(output)['ok'] or counted_frames(output)!=720:
+        raise ValueError('Thirty-second sequence failed complete validation')
+    result={'path':str(output.resolve()),'sha256':file_hash(output),'sources':binding,
+            'duration_seconds':30,'frames':720,'slowdown_operations':1,'slowdown_multiplier':2,
+            'audio':False,'captions':False,'style':'photorealistic','quality_review':'pending'}
+    write_json(receipt,result,exclusive=True)
+    return result
+
+
 def reflection_captions(alignment, output, *, duration):
     """Horizontal, literal captions from an explicitly reconciled transcript."""
     from .captions import validated_words
@@ -141,22 +173,38 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return result
 
 
-def assemble(blocks, narration, music, subtitles, output, *, root=ROOT):
+def assemble(blocks, narration, music, subtitles, output, *, root=ROOT, sequence_plan=None):
     """Concatenate ten distinct blocks with one continuous, unretimed narration."""
     import wave
     paths = list(map(Path, blocks))
     narration, music, subtitles, output = map(Path, (narration, music, subtitles, output))
-    if len(paths) != 10 or len({file_hash(p) for p in paths}) != 10:
+    if sequence_plan is None and (len(paths) != 10 or len({file_hash(p) for p in paths}) != 10):
         raise ValueError('Ten distinct processed visual blocks are required')
     if output.exists():
         raise ValueError('Preserve an existing prototype master')
     with wave.open(str(narration)) as wav:
         duration = wav.getnframes() / wav.getframerate()
-    expected = block_frame_counts(duration)
-    for p, count in zip(paths, expected):
-        receipt = read_json(p.with_suffix('.json'))
-        if receipt['sha256'] != file_hash(p) or receipt['binding']['frames'] != count:
-            raise ValueError('Block is not bound to this narration timeline')
+    if sequence_plan is None:
+        expected = block_frame_counts(duration)
+        for p, count in zip(paths, expected):
+            receipt = read_json(p.with_suffix('.json'))
+            if receipt['sha256'] != file_hash(p) or receipt['binding']['frames'] != count:
+                raise ValueError('Block is not bound to this narration timeline')
+    else:
+        from .sequence_library import SequenceLibrary
+        library = SequenceLibrary(root)
+        items = sequence_plan['items']
+        if len(items) != len(paths) or len(items) != math.ceil(duration/30) or abs(sequence_plan['duration_seconds']-duration)>.001:
+            raise ValueError('Library plan does not cover this narration')
+        previous = None
+        for i, (p, item) in enumerate(zip(paths, items)):
+            row = library.get(item['sequence_id'])
+            library.verify(row)
+            if (Path(row['path']).resolve()!=p.resolve() or row['sha256']!=item['sha256']
+                    or row['environment']==previous or item['start_seconds']!=i*30):
+                raise ValueError('Library timeline changed or repeats an adjacent environment')
+            previous=row['environment']
+        expected = [math.ceil(duration*24)]
     tools = discover()
     work = output.parent / (output.stem + '-assembly')
     work.mkdir(parents=True, exist_ok=True)
@@ -182,7 +230,8 @@ def assemble(blocks, narration, music, subtitles, output, *, root=ROOT):
     if any(file_hash(Path(r['path'])) != r['sha256'] for r in refs):
         raise RuntimeError('An assembly input changed')
     result = {'status':'TECHNICAL_PASS','path':str(output.resolve()),'sha256':file_hash(output),
-              'duration_seconds':sum(expected)/24,'frames':sum(expected),'visual_blocks':10,'voice_speed_factor':1.0,
+              'duration_seconds':sum(expected)/24,'frames':sum(expected),'visual_blocks':len(paths),'voice_speed_factor':1.0,
+              'library_plan_id':sequence_plan['plan_id'] if sequence_plan else None,
               'inputs':refs,'independent_audiovisual_review':'pending','publication':'not_uploaded'}
     write_json(output.with_suffix('.json'), result, exclusive=True)
     return result
