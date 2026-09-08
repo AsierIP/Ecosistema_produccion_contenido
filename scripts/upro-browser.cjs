@@ -14,12 +14,13 @@ async function main() {
   if (!/^UC[A-Za-z0-9_-]{22}$/.test(account)) throw new Error('Missing exact YouTube channel');
   const profile = path.join(root, '.runtime', 'browser-profiles', channelId);
   const report = path.join(root, '.runtime', 'upro', 'browser-connections', channelId + '.json');
+  let identifierSubmitted = false;
   const saveStatus = status => {
     fs.mkdirSync(path.dirname(report), {recursive: true});
     const temporary = report + '.' + process.pid + '.tmp';
     fs.writeFileSync(temporary, JSON.stringify({status, channel_id: channelId,
       expected_account_id: account, observed_at: new Date().toISOString(),
-      publication_performed: false}));
+      publication_performed: false, identifier_submitted: identifierSubmitted}));
     fs.renameSync(temporary, report);
   };
   const context = await chromium.launchPersistentContext(profile, {
@@ -41,6 +42,17 @@ async function main() {
     const continueToStudio = page.getByRole('link', {name: 'Cambiar a la nueva versión de Studio', exact: true});
     if (await continueToStudio.isVisible()) await continueToStudio.click();
     if (mode === 'connect') {
+      // Only an explicitly supplied identifier. Passwords and 2FA remain manual.
+      const loginEmail = process.env.UPRO_LOGIN_EMAIL;
+      delete process.env.UPRO_LOGIN_EMAIL;
+      if (loginEmail && new URL(page.url()).hostname === 'accounts.google.com') {
+        const identifier = page.getByRole('textbox', {name: /^(Correo electrónico o teléfono|Email or phone)$/});
+        if (await identifier.isVisible()) {
+          await identifier.fill(loginEmail);
+          await page.getByRole('button', {name: /^(Siguiente|Next)$/}).click();
+          identifierSubmitted = true;
+        }
+      }
       saveStatus('AUTH_REQUIRED');
       console.log(JSON.stringify({status: 'CONNECTION_WINDOW_OPEN', channel_id: channelId,
         instruction: 'Completa el acceso en Chrome. Upro cerrará la ventana cuando reconozca el canal.'}));

@@ -2,11 +2,24 @@ import tempfile
 from pathlib import Path
 import unittest
 from unittest.mock import patch
-from ecosystem.browser import connection_observation, browser_command
+from ecosystem.browser import connection_observation, browser_command, open_connection
 from ecosystem.config import ROOT, read_json, write_json
 
 
 class BrowserObservationTests(unittest.TestCase):
+    def test_connection_uses_private_shared_identifier_without_changing_channel(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            write_json(root / 'local.json', {'youtube_login': {'email': 'owner@example.com'}})
+            with patch('ecosystem.browser.browser_command', return_value=(['node', 'religion', 'connect'], {})), \
+                    patch('ecosystem.browser.subprocess.Popen') as launch:
+                open_connection('religion', root=root)
+                self.assertEqual(launch.call_args.args[0], ['node', 'religion', 'connect'])
+                self.assertEqual(launch.call_args.kwargs['env']['UPRO_LOGIN_EMAIL'], 'owner@example.com')
+                with self.assertRaises(ValueError):
+                    open_connection('religion', root=root, login_email='invalid')
+                self.assertEqual(launch.call_count, 1)
+
     def test_explicit_runtime_works_without_codex_path(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

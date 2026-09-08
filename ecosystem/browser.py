@@ -52,8 +52,17 @@ def check_browser(channel_id, *, root=ROOT, authenticate=False):
     return json.loads(result.stdout.strip().splitlines()[-1])
 
 
-def open_connection(channel_id, *, root=ROOT):
+def open_connection(channel_id, *, root=ROOT, login_email=None):
     command, env = browser_command(channel_id, 'connect', root=root)
+    if login_email is None:
+        local_path = Path(root) / 'local.json'
+        if local_path.exists():
+            login_email = read_json(local_path).get('youtube_login', {}).get('email')
+    if login_email is not None:
+        import re
+        if not isinstance(login_email, str) or not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', login_email):
+            raise ValueError('Invalid explicitly supplied login email')
+        env['UPRO_LOGIN_EMAIL'] = login_email
     return subprocess.Popen(command, env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
