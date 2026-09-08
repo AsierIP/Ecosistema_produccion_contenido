@@ -51,9 +51,11 @@ def conform(request_path, *, root):
     return result
 
 
-def advance_native_conforms(root, queue):
+def advance_native_conforms(root, queue, *, only_job=None):
     root = Path(root)
     for batch_path in (root / '.runtime/upro/native-batches').glob('*/batch.json'):
+        if only_job is not None and read_json(batch_path).get('job_id') != only_job:
+            continue
         state_path = batch_path.parent / 'state.json'
         if not state_path.exists():
             continue

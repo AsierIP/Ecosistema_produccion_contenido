@@ -187,17 +187,8 @@ class Controller:
                 if self.controls["paused"] or self.stopping:
                     return
                 from .workflow import seed_ready_jobs, advance_production
-                from .segment_review import recover_native_rejection, retry_transient_segment_review, resume_saved_segment_review
-                for native_step in self.queue.list():
-                    recover_native_rejection(self.root, native_step, self.queue)
-                    retry_transient_segment_review(self.root, native_step, self.queue)
-                    resume_saved_segment_review(self.root, native_step, self.queue)
-                from .native_batch import advance_native_batches
-                advance_native_batches(self.root, self.queue)
-                from .native_sequence import advance_native_sequences
-                advance_native_sequences(self.root, self.queue)
-                from .native_conform import advance_native_conforms
-                advance_native_conforms(self.root, self.queue)
+                from .native_workflow import advance_native_jobs
+                native_blocked = advance_native_jobs(self.root, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
                 advance_production(self.root, self.queue)
@@ -221,7 +212,7 @@ class Controller:
                     cid = channel["channel_id"]
                     if len(self.active) >= self.max_workers:
                         break
-                    if not self.enabled(cid) or cid in active_channels or channel["job_id"] in unresolved:
+                    if not self.enabled(cid) or cid in active_channels or channel["job_id"] in unresolved or channel['job_id'] in native_blocked:
                         continue
                     # A blocked/uncertain step requires inspection; no automatic retry loop.
                     relevant = [s for s in steps if s["job_id"] == channel["job_id"]]

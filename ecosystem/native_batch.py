@@ -127,8 +127,10 @@ def advance_batch(root, queue, path):
     return state
 
 
-def advance_native_batches(root, queue):
+def advance_native_batches(root, queue, *, only_job=None):
     for step in queue.list():
+        if only_job is not None and step['job_id'] != only_job:
+            continue
         if step['adapter'] != 'vibes_generate' or step['state'] != 'accepted':
             continue
         request = read_json(Path(step['payload']['inputs'][0]['path']))
@@ -144,4 +146,6 @@ def advance_native_batches(root, queue):
         immutable(Path(root) / '.runtime/upro/native-batches' / step['id'] / 'batch.json',
                   {**template, 'candidates': step['result']['candidates']})
     for path in (Path(root) / '.runtime/upro/native-batches').glob('*/batch.json'):
+        if only_job is not None and read_json(path).get('job_id') != only_job:
+            continue
         advance_batch(Path(root), queue, path)

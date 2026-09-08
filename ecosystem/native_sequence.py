@@ -155,6 +155,8 @@ def advance_sequence(root, queue, path):
                'montage_pending': True})
 
 
-def advance_native_sequences(root, queue):
+def advance_native_sequences(root, queue, *, only_job=None):
     for path in (Path(root) / '.runtime/upro/native-sequences').glob('*/sequence.json'):
+        if only_job is not None and read_json(path).get('job_id') != only_job:
+            continue
         advance_sequence(Path(root), queue, path)

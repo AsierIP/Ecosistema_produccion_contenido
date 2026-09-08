@@ -113,6 +113,28 @@ class UproTests(unittest.TestCase):
         self.executor.assert_called_once()
         self.assertEqual(self.queue.list()[0]['state'], 'accepted')
 
+    def test_native_handoff_failure_does_not_stop_other_channel(self):
+        from ecosystem.config import read_json
+        self.queue.register(self.plan())
+        with Store(self.root / '.runtime/production.sqlite3') as store:
+            sq = store.enqueue_job('sabias-que', '2026-09-05')['id']
+        self.queue.register(self.plan(job_id=sq, channel_id='sabias-que'))
+        with patch('ecosystem.native_workflow.advance_native_batches', side_effect=ValueError('Changed native source')):
+            self.controller.tick()
+            for active in list(self.controller.active.values()):
+                active['future'].result(timeout=3)
+        self.executor.assert_called_once()
+        self.assertEqual(self.executor.call_args.args[1]['channel_id'], 'sabias-que')
+        self.assertIsNone(self.controller.last_error)
+        states = {s['channel_id']: s['state'] for s in self.queue.list()}
+        self.assertEqual(states, {'religion': 'queued', 'sabias-que': 'accepted'})
+        error = self.root / '.runtime/jobs' / self.job / 'handoffs/error-native.json'
+        self.assertEqual(read_json(error)['reason'], 'Changed native source')
+        self.controller.tick()
+        for active in list(self.controller.active.values()):
+            active['future'].result(timeout=3)
+        self.assertEqual(read_json(error)['status'], 'resolved')
+
     def test_controls_persist_without_bypassing_locked_line(self):
         self.controller.set_line('religion', False)
         self.controller.set_paused(True)
