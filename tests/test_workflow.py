@@ -111,3 +111,29 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(len([s for s in self.queue.list() if s['adapter'] == 'visual']), 1)
         advance_production(self.root, Queue(self.root))
         self.assertEqual(len([s for s in self.queue.list() if s['adapter'] == 'visual']), 3)
+
+    def test_documentary_slot_does_not_generate_an_unused_image(self):
+        parent = self.voice_parent()
+        brief_path = self.root / 'production-brief.json'
+        brief = read_json(brief_path)
+        photo = self.root / 'licensed-photo.jpg'
+        photo.write_bytes(b'Documentary fixture')
+        license_path = self.root / 'license.json'
+        write_json(license_path, {'license': 'fixture'})
+        brief['documentary'] = {'needed': True, 'scene_index': 1, 'path': str(photo),
+            'sha256': file_hash(photo), 'source_url': 'https://example.org/documentary',
+            'license_evidence': str(license_path)}
+        write_json(brief_path, brief)
+        # Bind the test voice fixture to this storyboard before producing visuals.
+        request_path = self.root / 'voice-request.json'
+        request = read_json(request_path)
+        request['brief_sha256'] = file_hash(brief_path)
+        write_json(request_path, request)
+        advance_production(self.root, self.queue)
+        children = [s for s in self.queue.list() if s['adapter'] == 'visual']
+        self.assertEqual({read_json(Path(s['payload']['inputs'][0]['path']))['timeline_index'] for s in children}, {0, 2})
+        self.assertEqual(advance_production(self.root, self.queue), [])
+        photo.write_bytes(b'Changed fixture')
+        self.assertEqual(advance_production(self.root, self.queue), [])
+        errors = list((self.root / '.runtime/jobs' / self.job['id'] / 'handoffs').glob('error-*.json'))
+        self.assertTrue(any('changed' in read_json(p).get('reason', '') for p in errors))

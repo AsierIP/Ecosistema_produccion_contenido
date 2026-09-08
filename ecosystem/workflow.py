@@ -28,6 +28,21 @@ def validate_brief(brief, channel):
     return brief
 
 
+def documentary_index(brief, count):
+    documentary = brief.get('documentary', {})
+    if documentary.get('needed') is not True:
+        return None
+    index = documentary.get('scene_index')
+    if (not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < count
+            or not documentary.get('source_url') or not documentary.get('license_evidence')):
+        raise ValueError('Documentary image needs a valid timeline position, source and license')
+    image = Path(documentary['path'])
+    license_path = Path(documentary['license_evidence'])
+    if not image.is_file() or file_hash(image) != documentary.get('sha256') or not license_path.is_file():
+        raise ValueError('Documentary asset or license is missing or changed')
+    return index
+
+
 def advance_production(root, queue, *, stage_id=None):
     """Reconnect completed editorial/audio stages without repeating providers."""
     root = Path(root)
@@ -88,6 +103,12 @@ def advance_production(root, queue, *, stage_id=None):
             request = read_json(Path(step['payload']['inputs'][0]['path']))
             if not request.get('brief_path') or not request.get('frames'):
                 continue
+            brief_path = Path(request['brief_path'])
+            if file_hash(brief_path) != request['brief_sha256']:
+                raise ValueError('Storyboard changed before animation')
+            brief = read_json(brief_path)
+            if request['timeline_index'] == documentary_index(brief, request['timeline_count']):
+                continue  # An existing documentary replaces this legacy generated slot.
             from .dispatch import validate_receipt
             from .motion import validate_motion
             receipt_path = Path(result.get('receipt_path') or result['run']['receipt_path'])
@@ -133,11 +154,16 @@ def advance_production(root, queue, *, stage_id=None):
             if count > len(brief['scenes']):
                 raise ValueError('Narration needs more storyboard scenes; do not stretch or repeat images')
             children = [s for s in steps if s['adapter'] == 'visual' and step['id'] in s['payload'].get('depends_on', [])]
-            if len(children) == count:
+            documentary = documentary_index(brief, count)
+            required_indices = set(range(count)) - ({documentary} if documentary is not None else set())
+            existing_indices = {read_json(Path(s['payload']['inputs'][0]['path']))['timeline_index'] for s in children}
+            if required_indices <= existing_indices:
                 continue
             # Spread the selected shots across the whole story, including its final beat.
             indices = [round(i * (len(brief['scenes']) - 1) / (count - 1)) for i in range(count)] if count > 1 else [0]
             for index, original in enumerate(indices):
+                if index == documentary:
+                    continue  # Use the licensed original directly; no discarded AI generation.
                 scene = brief['scenes'][original]
                 request_path = folder / (scene['id'] + '.json')
                 value = {'kind': 'image_generation_request_v1', 'channel_id': channel['id'],

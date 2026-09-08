@@ -104,11 +104,17 @@ def advance_montage(root, queue, *, only_job=None):
         caption_steps = [s for s in job_steps if s['adapter'] == 'captions' and s['state'] == 'accepted'
                          and parent['id'] in s['payload'].get('depends_on', [])]
         visuals = [s for s in job_steps if s['adapter'] == 'visual' and parent['id'] in s['payload'].get('depends_on', [])]
-        if len(caption_steps) != 1 or not visuals or any(s['state'] != 'accepted' for s in visuals):
+        from .workflow import documentary_index
+        total_frames = math.ceil(audio_result['duration_seconds'] * 24)
+        count = math.ceil(audio_result['duration_seconds'] / 5)
+        documentary_slot = documentary_index(brief, count)
+        if len(caption_steps) != 1 or (not visuals and documentary_slot is None) or any(s['state'] != 'accepted' for s in visuals):
             continue
         scenes, dependencies = [], [parent['id'], caption_steps[0]['id']]
         for visual in visuals:
             planned = read_json(Path(visual['payload']['inputs'][0]['path']))
+            if planned['timeline_index'] == documentary_slot:
+                continue  # Legacy jobs may contain an unused generated documentary slot.
             animations = [s for s in job_steps if s['adapter'] == 'ambient' and s['state'] == 'accepted'
                           and visual['id'] in s['payload'].get('depends_on', [])]
             if len(animations) != 1:
@@ -117,23 +123,24 @@ def advance_montage(root, queue, *, only_job=None):
             scenes.append({'id': planned['scene_id'], 'frames': planned['frames'], 'video': animation['result']['output'],
                            'sha256': animation['result']['sha256'], 'timeline_index': planned['timeline_index']})
             dependencies.append(animation['id'])
-        if len(scenes) != len(visuals):
+        if len(scenes) != count - (1 if documentary_slot is not None else 0):
             continue
         scenes.sort(key=lambda s: s['timeline_index'])
-        if [s['timeline_index'] for s in scenes] != list(range(len(scenes))):
-            raise ValueError('Scene timeline has gaps or duplicate indices')
         documentary = brief.get('documentary', {})
         if documentary.get('needed') is True:
             index = documentary.get('scene_index')
-            if (not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(scenes)
+            if (not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < count
                     or not documentary.get('source_url') or not documentary.get('license_evidence')):
                 raise ValueError('Documentary image requires a valid position, source and license evidence')
             photo = Path(documentary['path']).resolve(strict=True)
             if file_hash(photo) != documentary['sha256']:
                 raise ValueError('Documentary image changed')
-            scenes[index] = {'id': scenes[index]['id'], 'frames': scenes[index]['frames'],
+            scenes.insert(index, {'id': 'documentary-' + str(index), 'frames': min(120, total_frames - index * 120),
+                             'timeline_index': index,
                              'image': str(photo), 'sha256': documentary['sha256'], 'documentary': documentary,
-                             'background_filter': "scale=1188:2112:force_original_aspect_ratio=decrease,pad=1188:2112:(ow-iw)/2:(oh-ih)/2:color=0x081629,crop=1080:1920:x='54+20*sin(t*0.35)':y=96,eq=contrast=1.12:saturation=1.06"}
+                             'background_filter': "scale=1188:2112:force_original_aspect_ratio=decrease,pad=1188:2112:(ow-iw)/2:(oh-ih)/2:color=0x081629,crop=1080:1920:x='54+20*sin(t*0.35)':y=96,eq=contrast=1.12:saturation=1.06"})
+        if [s['timeline_index'] for s in scenes] != list(range(count)):
+            raise ValueError('Scene timeline has gaps or duplicate indices')
         captions = caption_steps[0]['result']
         if file_hash(Path(audio_result['path'])) != audio_result['sha256'] or file_hash(Path(captions['path'])) != captions['sha256']:
             raise ValueError('Voice or captions changed after validation')
@@ -150,6 +157,8 @@ def advance_montage(root, queue, *, only_job=None):
         inputs = [manifest, Path(request['brief_path']), Path(read_json(manifest)['narration']), Path(captions['path']), intro] + [Path(s.get('video') or s['image']) for s in scenes]
         if captions.get('alignment'):
             inputs.append(Path(captions['alignment']['path']))
+        if documentary.get('needed') is True:
+            inputs.append(Path(documentary['license_evidence']).resolve())
         created.append(queue.register({'schema_version': 1, 'job_id': job_id, 'channel_id': 'sabias-que',
             'adapter': 'cutout', 'mode': parent['mode'], 'depends_on': dependencies,
             'inputs': [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in inputs]}))
