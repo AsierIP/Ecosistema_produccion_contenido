@@ -1,5 +1,14 @@
 # Etapa visual
 
+Si la petición es `existing_image_review_v1`, la imagen ya fue generada y se
+incluye en `source_image` y en las entradas de la cápsula. Abre exactamente ese
+PNG con la herramienta de inspección; revisa formato, contexto, estilo y regiones
+de movimiento. NO llames a ImageGen, no edites ni generes variantes. Devuelve
+únicamente ese PNG como artefacto, con hash vacío y bytes=0 para que lo selle el
+ejecutor, y el motion_plan descrito abajo si es válido. Si no es válido, devuelve
+REJECT con defectos concretos. Este caso de revisión de imagen existente tiene
+prioridad sobre las instrucciones de generación nueva del resto del documento.
+
 Al aceptar una imagen del cómic, incluye una comprobación `motion_plan`, con
 `passed=true` y `evidence` como JSON serializado. Debe contener `scope_evidence`
 describiendo lo que realmente has visto, `protected_rects` para objetos rígidos

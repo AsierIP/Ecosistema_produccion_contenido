@@ -42,7 +42,7 @@ def visual_preflight(packet):
             continue
         try:
             data = read_json(path)
-            if isinstance(data, dict) and data.get('kind') == 'image_generation_request_v1':
+            if isinstance(data, dict) and data.get('kind') in {'image_generation_request_v1', 'existing_image_review_v1'}:
                 requests.append(data)
         except (OSError, ValueError):
             continue
@@ -51,12 +51,19 @@ def visual_preflight(packet):
     request = requests[0]
     if not isinstance(request.get('scene_id'), str) or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', request['scene_id']):
         return ['Falta un scene_id estable para limitar los intentos por escena']
-    if request.get('channel_id') != packet['channel']['id'] or request.get('image_count') != 1:
+    reviewing_existing = request.get('kind') == 'existing_image_review_v1'
+    if request.get('channel_id') != packet['channel']['id'] or request.get('image_count') != (0 if reviewing_existing else 1):
         return ['La petición debe corresponder al canal y a una sola imagen']
     if not isinstance(request.get('prompt'), str) or not 1 <= len(request['prompt']) <= 6000:
         return ['Falta un prompt visual acotado']
     if not request.get('source_basis'):
         return ['Falta la base editorial de la imagen']
+    if reviewing_existing:
+        ref = request.get('source_image', {})
+        if not any(r.get('path') == ref.get('path') and r.get('sha256') == ref.get('sha256') for r in packet['inputs']):
+            return ['La imagen existente debe estar declarada y ligada por hash']
+        if not ref.get('path') or file_hash(Path(ref['path'])) != ref.get('sha256'):
+            return ['La imagen existente cambió antes de su revisión']
     return []
 
 def quality_preflight(packet):
@@ -182,7 +189,7 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
             if p.suffix.lower() == '.json' and p.stat().st_size <= 100_000:
                 try:
                     value = read_json(p)
-                    if isinstance(value, dict) and value.get('kind') == 'image_generation_request_v1':
+                    if isinstance(value, dict) and value.get('kind') in {'image_generation_request_v1', 'existing_image_review_v1'}:
                         unit_id = value['scene_id']
                 except (OSError, ValueError):
                     continue
