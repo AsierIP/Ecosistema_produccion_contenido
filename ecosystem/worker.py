@@ -180,6 +180,9 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
                 except (OSError, ValueError):
                     continue
     if role == "quality":
+        runtime_tools = read_json(Path(packet['packet_path'])).get('runtime_tools',{})
+        if set(runtime_tools) != {'ffmpeg','ffprobe'}:
+            return {'status':'BLOCKED','reason':'Faltan herramientas audiovisuales locales verificadas','agent_started':False}
         preflight_errors = quality_preflight(read_json(Path(packet["packet_path"])))
         if preflight_errors:
             return {"status": "BLOCKED", "reason": "QA preflight", "errors": preflight_errors, "agent_started": False}

@@ -43,6 +43,17 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     native_protocol = root / 'ecosystem/native_judge.py'
     if role == 'quality' and native_protocol.exists():
         prompt += '\nNative judgment protocol hash: ' + file_hash(native_protocol)
+    runtime_tools = {}
+    if role == 'quality':
+        from .media import discover
+        available = discover()
+        for name in ('ffmpeg','ffprobe'):
+            executable = available.get(name)
+            if executable and Path(executable).is_file():
+                runtime_tools[name] = {'path':str(Path(executable).resolve()),'sha256':file_hash(Path(executable))}
+        prompt += ('\nHerramientas de comprobación disponibles con rutas absolutas verificadas: '
+                   + json.dumps(runtime_tools,ensure_ascii=False)
+                   + '\nInvoca estas rutas directamente para probe, recuento y decodificación. No dependas del PATH ni busques otras instalaciones.')
     fingerprint = cache_key(channel_id=channel["id"], stage=role, policy={"channel": channel, "visual": profile, "prompt": prompt, "youtube_release": release_policy, "receipt_schema": read_json(root / "config/receipt.schema.json"), "runner_limits": models.get("runner_limits", {}), "validator_version": 2}, inputs=refs, model=routing)
     output = root / ".runtime/jobs" / job_id / role / fingerprint[:16]
     packet = {
@@ -51,6 +62,7 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
         "profile": profile, "instructions": prompt, "inputs": refs,
         "youtube_release": release_policy,
         "review_policy": review_policy,
+        "runtime_tools": runtime_tools,
         "unresolved_intents": [i for i in intents if i["state"] != "verified"],
         "output_directory": str(output), "cache_key": fingerprint,
         "receipt_schema": str(root / "config/receipt.schema.json"),
