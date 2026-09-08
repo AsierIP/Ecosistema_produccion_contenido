@@ -98,8 +98,10 @@ def advance_reviews(root, queue):
                     if file_hash(Path(ref['path'])) != ref['sha256']:
                         raise ValueError('Review context changed')
                 manifest = read_json(Path(request['manifest_path']))
-                preflight = folder / 'quality-preflight.json'
-                value = {'kind': 'quality_preflight_v1', 'capabilities': {},
+                preflight = folder / 'quality-preflight-final-v2.json'
+                value = {'kind': 'quality_preflight_v1', 'scope': 'final_master',
+                         'capabilities': {'automated_audiovisual_evidence': True,
+                                          'local_asr_evidence': True, 'human_review': False},
                          'automated_evidence': {'path': str(report), 'sha256': result['sha256']},
                          'technical_evidence': {'sha256': file_hash(Path(request['technical_path']))}}
                 if not preflight.exists():
