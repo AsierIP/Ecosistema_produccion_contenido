@@ -41,8 +41,11 @@ def advance_sequence(root, queue, path):
             'native_sequence': spec['sequence_id'], 'creative': spec['creative']})
         queue.register({'schema_version': 1, 'channel_id': spec['channel_id'], 'job_id': spec['job_id'],
                        'adapter': 'voice_generate', 'mode': spec['mode'], 'inputs': [ref(voice_path)]})
-    elif len(voices) != 1 or read_json(Path(voices[0]['payload']['inputs'][0]['path']))['transcript'] != creative['canonical_narration_text']:
-        raise ValueError('Native sequence narration requires reconciliation')
+    else:
+        from .native_narration import selected_voice
+        voice = selected_voice(voices)
+        if read_json(Path(voice['payload']['inputs'][0]['path']))['transcript'] != creative['canonical_narration_text']:
+            raise ValueError('Native sequence narration requires reconciliation')
     batches = []
     for batch_path in (root / '.runtime/upro/native-batches').glob('*/batch.json'):
         batch = read_json(batch_path)

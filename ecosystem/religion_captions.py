@@ -56,12 +56,11 @@ def build_religion_captions(transcript, words, output, *, duration):
 def advance_native_captions(root, queue, *, only_job):
     root = Path(root)
     steps = [s for s in queue.list() if s['job_id'] == only_job and s['channel_id'] == 'religion']
-    voices = [s for s in steps if s['adapter'] == 'voice_generate' and s['state'] == 'accepted']
-    if not voices:
+    from .native_narration import selected_voice
+    voices = [s for s in steps if s['adapter'] == 'voice_generate']
+    voice = selected_voice(voices)
+    if not voice or voice['state'] != 'accepted':
         return
-    if len(voices) != 1:
-        raise ValueError('Multiple accepted narrations require reconciliation')
-    voice = voices[0]
     source_ref = voice['payload']['inputs'][0]
     if file_hash(Path(source_ref['path'])) != source_ref['sha256']:
         raise ValueError('Narration request changed before caption handoff')
@@ -81,7 +80,8 @@ def advance_native_captions(root, queue, *, only_job):
     existing = [s for s in steps if s['adapter'] == 'captions' and voice['id'] in s['payload'].get('depends_on', [])]
     if existing:
         return
-    request = immutable(root / '.runtime/jobs' / only_job / 'native-captions/request.json',
+    caption_dir = 'native-captions' if len(voices) == 1 else 'native-captions-retake'
+    request = immutable(root / '.runtime/jobs' / only_job / caption_dir / 'request.json',
         {'kind': 'religion_captions_v1', 'channel_id': 'religion', 'transcript': source['transcript'],
          'audio_path': audio['path'], 'audio_sha256': audio['sha256']})
     return queue.register({'schema_version': 1, 'channel_id': 'religion', 'job_id': only_job,

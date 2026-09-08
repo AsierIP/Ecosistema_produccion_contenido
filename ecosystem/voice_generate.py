@@ -78,8 +78,17 @@ def generation_config(request, channel):
     if closing.get('required') and not text.rstrip().endswith(closing['spoken_text']):
         raise ValueError('Missing required spoken closing')
     # Delivery comes from the approved channel, never from arbitrary request code.
-    direction = (voice.get('delivery', '') + f" Idioma regional {voice['locale']}. "
-                 'Ritmo natural. No añadas, repitas, cambies ni omitas palabras. Lee exactamente: ' + text)
+    timing = ''
+    if 'target_duration_seconds' in request:
+        target = request['target_duration_seconds']
+        if (channel['id'] != 'religion' or not request.get('native_sequence')
+                or isinstance(target, bool) or not isinstance(target, (int, float))
+                or not 25 <= target <= 31.25):
+            raise ValueError('Invalid native narration duration target')
+        timing = (f' Duración orientativa de la lectura: {target:g} segundos. '
+                  'Mantén la misma voz y expresividad, con fraseo fluido y pausas breves naturales. ')
+    direction = (voice.get('delivery', '') + f" Idioma regional {voice['locale']}. " + timing
+                 + 'Ritmo natural. No añadas, repitas, cambies ni omitas palabras. Lee exactamente: ' + text)
     return {'schema_version': 1, 'language': voice['locale'], 'transcript': text, 'direction': direction,
             'google_gemini': {'endpoint': 'https://generativelanguage.googleapis.com/v1beta/interactions',
                              'api_revision': '2026-05-20', 'model': 'gemini-3.1-flash-tts-preview',
