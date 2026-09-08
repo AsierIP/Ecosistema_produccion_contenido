@@ -142,10 +142,14 @@ def advance_montage(root, queue, *, only_job=None):
         channel = next(c for c in load_channels(root) if c['id'] == 'sabias-que')
         from .intro import caption_intro
         intro = caption_intro(local['intro_path'], Path(local['media_root']) / 'shared-intro', root=root)
-        manifest = build_manifest(title=brief['title'], transcript=brief['transcript'], audio=audio_result['path'],
+        from .caption_alignment import verified_caption_transcript
+        caption_transcript = verified_caption_transcript(captions, brief['transcript'], 'sabias-que')
+        manifest = build_manifest(title=brief['title'], transcript=caption_transcript, audio=audio_result['path'],
             captions=captions['path'], scenes=scenes, intro=intro,
             output_dir=Path(local['media_root']) / job_id / 'master', evidence_dir=root / '.runtime/jobs' / job_id / 'assembly', voice=channel['voice'])
         inputs = [manifest, Path(request['brief_path']), Path(read_json(manifest)['narration']), Path(captions['path']), intro] + [Path(s.get('video') or s['image']) for s in scenes]
+        if captions.get('alignment'):
+            inputs.append(Path(captions['alignment']['path']))
         created.append(queue.register({'schema_version': 1, 'job_id': job_id, 'channel_id': 'sabias-que',
             'adapter': 'cutout', 'mode': parent['mode'], 'depends_on': dependencies,
             'inputs': [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in inputs]}))

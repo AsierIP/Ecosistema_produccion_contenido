@@ -58,7 +58,17 @@ def prepare_captions(request_path, output, *, root):
     if profile == 'early-reels-ivory-gold-v01':
         from .religion_captions import build_religion_captions
         builder = build_religion_captions
-    result = builder(request['transcript'], read_json(asr_path)['words'], output / 'captions.ass', duration=duration)
+    from .caption_alignment import resolve_alignment
+    transcript, aligned_words, changes = resolve_alignment(request['transcript'], read_json(asr_path)['words'], request['channel_id'])
+    result = builder(transcript, aligned_words, output / 'captions.ass', duration=duration)
+    alignment_path = output / 'alignment.json'
+    alignment = {'kind': 'caption_alignment_v1', 'channel_id': request['channel_id'],
+                 'canonical_transcript': request['transcript'], 'transcript': transcript,
+                 'changes': changes, 'audio_sha256': binding['audio_sha256'],
+                 'duration_seconds': duration,
+                 'asr': {'path': str(asr_path.resolve()), 'sha256': file_hash(asr_path)}}
+    write_json(alignment_path, alignment, exclusive=True)
+    result.update(transcript=transcript, alignment={'path': str(alignment_path.resolve()), 'sha256': file_hash(alignment_path)})
     result.update(status='TECHNICAL_PASS', binding=binding, sha256=file_hash(Path(result['path'])),
                   asr_sha256=file_hash(asr_path), provider_calls=0, agent_tokens=0, independent_listening='pending')
     write_json(receipt_path, result, exclusive=True)

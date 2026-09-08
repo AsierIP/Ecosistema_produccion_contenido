@@ -173,7 +173,8 @@ def summarize_review(manifest, provider, asr, intro_asr=None):
     if intro_asr is not None:
         expected = [w['word'] for w in read_json(Path(intro_asr))['words']] + expected
     words = align_number_spans(expected, read_json(asr)['words'])
-    literal = [normalize(w['word']) for w in words] == [normalize(w) for w in expected]
+    from .caption_alignment import speech_token
+    literal = [speech_token(w['word']) for w in words] == [speech_token(w) for w in expected]
     return {'kind': 'automated_av_evidence_v1', 'status': 'EVIDENCE_READY',
             'master_sha256': digest, 'master_path': str(master.resolve()),
             'review_method': 'automated-audiovisual-review', 'human_review': False,

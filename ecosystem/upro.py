@@ -188,6 +188,8 @@ class Controller:
                 if self.controls["paused"] or self.stopping:
                     return
                 from .workflow import seed_ready_jobs, advance_production
+                from .caption_alignment import recover_saved_alignments
+                recover_saved_alignments(self.root, self.queue)
                 from .native_workflow import advance_native_jobs
                 native_blocked = advance_native_jobs(self.root, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
