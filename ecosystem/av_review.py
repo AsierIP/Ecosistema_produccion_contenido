@@ -114,7 +114,16 @@ def advance_reviews(root, queue):
                 inputs += [Path(r['path']) for r in request['context'] if Path(r['path']).suffix.lower() != '.mp4']
                 if manifest.get('kind') == 'native_master_review_v1':
                     from .native_quality_context import prepare as prepare_native_context
-                    inputs.append(prepare_native_context(root,steps,step))
+                    timeline_path = prepare_native_context(root,steps,step)
+                    inputs.append(timeline_path)
+                    timeline = read_json(timeline_path)
+                    for segment in timeline['timeline']['segments']:
+                        inputs.extend([Path(segment['source_path']),Path(segment['output_path'])])
+                    inputs.extend(Path(r['path']) for r in timeline['scene_evidence'])
+                    rights = timeline_path.parent / 'provider-rights-observation.json'
+                    if not rights.exists() or read_json(rights).get('master_sha256') != evidence['master_sha256']:
+                        raise ValueError('Native master needs its provider rights evidence')
+                    inputs.append(rights)
                     from .metadata import prepare_native_metadata
                     from .native_batch import immutable
                     creative_inputs = [read_json(Path(r['path'])) for r in request['context']

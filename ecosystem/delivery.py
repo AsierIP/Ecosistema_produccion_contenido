@@ -6,6 +6,14 @@ from .dispatch import validate_receipt
 from .quality import validate_qa
 
 
+def reviewed_master(inputs, qa):
+    matches = [r for r in inputs if Path(r['path']).suffix.lower() == '.mp4'
+               and r['sha256'] == qa.get('master_sha256')]
+    if len(matches) != 1:
+        raise ValueError('Independent QA must identify exactly one declared master')
+    return matches[0]
+
+
 def advance_delivery(root, queue):
     root = Path(root)
     steps = queue.list()
@@ -25,17 +33,17 @@ def advance_delivery(root, queue):
                     or packet['channel']['id'] != step['channel_id']
                     or receipt.get('decision') != 'ACCEPT' or validate_receipt(receipt, packet)):
                 raise ValueError('Independent review receipt lost integrity')
-            masters = [r for r in packet['inputs'] if Path(r['path']).suffix.lower() == '.mp4']
             metadata = [r for r in packet['inputs'] if Path(r['path']).name == 'metadata.json']
             reports = [a for a in receipt['artifacts'] if Path(a['path']).name == 'qa.json']
-            if len(masters) != 1 or len(metadata) != 1 or len(reports) != 1:
+            if len(metadata) != 1 or len(reports) != 1:
                 raise ValueError('Independent review needs one master, metadata and qa.json')
+            qa = read_json(Path(reports[0]['path']))
+            masters = [reviewed_master(packet['inputs'],qa)]
             reviewed = {str(Path(r['path']).resolve()): r['sha256'] for r in receipt['inputs_reviewed']}
             for ref in [masters[0], metadata[0]]:
                 if (reviewed.get(str(Path(ref['path']).resolve())) != ref['sha256']
                         or file_hash(Path(ref['path'])) != ref['sha256']):
                     raise ValueError('Master or publication text was not reviewed or has changed')
-            qa = read_json(Path(reports[0]['path']))
             channel = packet['channel']
             profile = {**packet['profile'], 'voice_speed_factor': channel['voice'].get('speed_factor', 1.0)}
             issues = validate_qa(qa, masters[0]['path'], profile)
