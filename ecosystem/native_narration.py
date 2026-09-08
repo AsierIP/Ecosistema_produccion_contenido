@@ -1,10 +1,50 @@
 """One bounded natural retake when narration exceeds the accepted timeline."""
 from pathlib import Path
 import wave
+import array
+import sys
 
 from .cache import file_hash
 from .config import read_json, write_json
 from .native_batch import immutable, ref
+
+
+def trim_verified_silent_tail(source, output, *, target, words, transcript):
+    """Keep every original PCM sample up to target; trim only proven silent tail."""
+    from .captions import validated_words
+    source, output = Path(source), Path(output)
+    with wave.open(str(source)) as stream:
+        params = stream.getparams()
+        duration = params.nframes / params.framerate
+        if params.sampwidth != 2 or params.comptype != 'NONE':
+            raise ValueError('Silent-tail fitting requires PCM16')
+        _, aligned = validated_words(transcript, words, duration)
+        if not 0 < duration - target <= 0.5 or aligned[-1]['end'] + 0.12 > target:
+            raise ValueError('Narration does not leave a safe silent tail')
+        cut = round(target * params.framerate)
+        pcm = stream.readframes(params.nframes)
+    prefix = pcm[:cut * params.nchannels * 2]
+    samples = array.array('h', pcm[len(prefix):])
+    if sys.byteorder != 'little':
+        samples.byteswap()
+    peak = max(map(abs, samples), default=32768)
+    if peak > 32:
+        raise ValueError('Tail contains audible signal; do not cut it')
+    if output.exists():
+        with wave.open(str(output)) as saved:
+            if (saved.getparams() != params._replace(nframes=cut)
+                    or saved.readframes(cut) != prefix):
+                raise ValueError('Existing fitted narration changed')
+    else:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with output.open('xb') as handle:
+            with wave.open(handle, 'wb') as saved:
+                saved.setparams(params._replace(nframes=cut))
+                saved.writeframes(prefix)
+    return {**ref(output), 'duration_seconds': cut / params.framerate,
+        'source': ref(source), 'last_word_end': aligned[-1]['end'],
+        'removed_seconds': duration - target, 'removed_peak_pcm16': peak,
+        'retiming': False, 'retained_pcm_identical': True}
 
 
 def selected_voice(voices):
@@ -64,6 +104,24 @@ def advance_narration_fit(root, queue, *, only_job):
                     and voice['id'] in s['payload'].get('depends_on', [])]
         if not captions or any(s['state'] in ('queued', 'running') for s in captions):
             return  # Obtain literal word timings before diagnosing a short tail overrun.
+        if len(captions) == 1 and captions[0]['state'] == 'accepted':
+            cap = captions[0]['result']
+            asr = Path(cap['path']).parent / 'asr.json'
+            if (cap['binding']['audio_sha256'] != audio['sha256']
+                    or file_hash(asr) != cap['asr_sha256']):
+                raise ValueError('Retake alignment evidence changed')
+            fitted = trim_verified_silent_tail(audio['path'],
+                Path(root) / '.runtime/jobs' / only_job / 'native-audio-fit/narration.wav',
+                target=target, words=read_json(asr)['words'], transcript=cap['binding']['transcript'])
+            immutable(Path(root) / '.runtime/jobs' / only_job / 'native-audio-fit/result.json',
+                {**fitted, 'voice_step': voice['id'], 'captions_step': captions[0]['id'],
+                 'asr': ref(asr), 'status': 'TECHNICAL_PASS'})
+            error = Path(root) / '.runtime/jobs' / only_job / 'handoffs/error-narration-fit.json'
+            resolved = {'status': 'resolved', 'job_id': only_job, 'voice_step': voice['id'],
+                        'fitted_audio_sha256': fitted['sha256']}
+            if not error.exists() or read_json(error) != resolved:
+                write_json(error, resolved)
+            return
         raise ValueError('Natural retake still exceeds timeline; preserve both takes for reconciliation')
     source = read_json(Path(voice['payload']['inputs'][0]['path']))
     request = immutable(Path(root) / '.runtime/jobs' / only_job / 'native-voice-retake/request.json',

@@ -1,10 +1,12 @@
 import tempfile
 import unittest
+import wave
+import struct
 from pathlib import Path
 
 from ecosystem.config import write_json, load_channels, ROOT
 from ecosystem.native_batch import ref
-from ecosystem.native_narration import selected_voice
+from ecosystem.native_narration import selected_voice, trim_verified_silent_tail
 from ecosystem.voice_generate import generation_config
 
 
@@ -37,6 +39,28 @@ class NativeNarrationTests(unittest.TestCase):
         original = self.step('original', self.request)
         with self.assertRaises(ValueError):
             selected_voice([original, original, original])
+
+    def test_silent_tail_preserves_samples_and_rejects_speech(self):
+        source, output = self.root / 'audio.wav', self.root / 'fitted.wav'
+        def audio(tail):
+            with wave.open(str(source), 'wb') as stream:
+                stream.setparams((1, 2, 1000, 0, 'NONE', 'not compressed'))
+                stream.writeframes(struct.pack('<1200h', *([500] * 700 + [0] * 300 + [tail] * 200)))
+        audio(0)
+        words = [{'word': 'Hola', 'start': 0, 'end': 0.7}]
+        result = trim_verified_silent_tail(source, output, target=1, words=words, transcript='Hola')
+        self.assertTrue(result['retained_pcm_identical'])
+        with wave.open(str(output)) as stream:
+            self.assertEqual(stream.getnframes(), 1000)
+        self.assertEqual(result, trim_verified_silent_tail(source, output, target=1, words=words, transcript='Hola'))
+        audio(100)
+        with self.assertRaises(ValueError):
+            trim_verified_silent_tail(source, self.root / 'bad.wav', target=1, words=words, transcript='Hola')
+        self.assertFalse((self.root / 'bad.wav').exists())
+        audio(0)
+        with self.assertRaises(ValueError):
+            trim_verified_silent_tail(source, self.root / 'spoken.wav', target=1,
+                words=[{'word': 'Hola', 'start': 0, 'end': 1.05}], transcript='Hola')
 
     def test_natural_duration_keeps_voice_and_transcript(self):
         channel = next(c for c in load_channels(ROOT) if c['id'] == 'religion')
