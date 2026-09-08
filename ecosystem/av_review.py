@@ -14,15 +14,49 @@ def advance_reviews(root, queue):
     steps = queue.list()
     created = []
     for step in steps:
-        if step['state'] != 'accepted' or step['adapter'] not in {'cutout', 'av_review'}:
+        if step['state'] != 'accepted' or step['adapter'] not in {'cutout', 'native_master', 'av_review'}:
             continue
-        child = 'av_review' if step['adapter'] == 'cutout' else 'quality'
+        child = 'av_review' if step['adapter'] in {'cutout', 'native_master'} else 'quality'
         if any(s['adapter'] == child and step['id'] in s['payload'].get('depends_on', []) for s in steps):
             continue
         folder = root / '.runtime/jobs' / step['job_id'] / 'handoffs' / step['id']
         error = folder.parent / ('error-review-' + step['id'] + '.json')
         try:
-            if step['adapter'] == 'cutout':
+            if step['adapter'] == 'native_master':
+                from .native_batch import immutable, ref as artifact_ref
+                from .native_master import checked
+                source_path = checked(step['payload']['inputs'][0])
+                source = read_json(source_path)
+                result = step['result']
+                if result.get('status') != 'TECHNICAL_PASS':
+                    raise ValueError('Native master lacks technical validation')
+                master = checked(result)
+                voices = [s for s in steps if s['id'] in step['payload']['depends_on']
+                          and s['adapter'] == 'voice_generate' and s['state'] == 'accepted']
+                if len(voices) != 1:
+                    raise ValueError('Native master needs one bound narration')
+                voice_request = checked(voices[0]['payload']['inputs'][0])
+                voice = read_json(voice_request)
+                creative = checked(voice['creative'])
+                music_path = checked(source['music_allocation'])
+                music = read_json(music_path)
+                license_path = checked(music['license'])
+                manifest_path = immutable(folder / 'native-review-manifest.json', {
+                    'kind':'native_master_review_v1','channel_id':'religion','output':str(master),
+                    'caption_transcript':voice['transcript'],'fps':24,'frames':750,
+                    'duration_seconds':31.25,'caption_profile':'early-reels-ivory-gold-v01',
+                    'voice':voices[0]['result']['binding']['voice'],
+                    'native_contract':{'boundary_seconds':[250/24,500/24],
+                        'diegetic_gaze':True,'distinct_scenes':3,'no_repeated_action':True}})
+                technical = immutable(folder / 'technical-review-input.json',result)
+                context = [source_path,manifest_path,technical,voice_request,creative,music_path,
+                           license_path,checked(source['captions'])]
+                request = {'kind':'automated_av_request_v1','channel_id':'religion',
+                    'manifest_path':str(manifest_path),'manifest_sha256':file_hash(manifest_path),
+                    'master_sha256':result['sha256'],'technical_path':str(technical),
+                    'context':[artifact_ref(p) for p in context]}
+                inputs = [immutable(folder / 'av-request.json',request)]
+            elif step['adapter'] == 'cutout':
                 inspections = [s for s in steps if s['adapter'] == 'media_check' and s['state'] == 'accepted'
                                and step['id'] in s['payload'].get('depends_on', [])]
                 metadata = folder / 'metadata.json'

@@ -343,7 +343,8 @@ class Controller:
             if url and urlsplit(url).scheme == "https":
                 return {"title": "Última publicación verificada", "url": url, "local_available": False,
                         "status": "Publicado y verificado"}
-        candidates = [s for s in steps if s["channel_id"] == channel and s["adapter"] == "media_check" and s["state"] == "accepted"]
+        candidates = [s for s in steps if s["channel_id"] == channel and s["adapter"] in {"media_check", "native_master"} and s["state"] == "accepted"]
+        candidates.sort(key=lambda s: s['adapter'] == 'native_master')
         if candidates:
             step = candidates[-1]
             path = Path(step["result"]["path"])
@@ -354,12 +355,13 @@ class Controller:
 
     def media(self, step_id):
         for step in self.queue.list():
-            if step["id"] == step_id and step["adapter"] == "media_check" and step["state"] == "accepted":
+            if step["id"] == step_id and step["adapter"] in {"media_check", "native_master"} and step["state"] == "accepted":
                 path = Path(step["result"]["path"])
                 if path.is_file() and path.suffix.lower() == ".mp4":
                     # Serving a replacement under an old accepted record is forbidden.
                     from .cache import file_hash
-                    if file_hash(path) == step["result"]["master_sha256"]:
+                    digest = step['result']['sha256'] if step['adapter'] == 'native_master' else step['result']['master_sha256']
+                    if file_hash(path) == digest:
                         return path
         raise KeyError("Vídeo no disponible")
 
