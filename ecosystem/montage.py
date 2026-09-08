@@ -103,7 +103,7 @@ def advance_montage(root, queue, *, only_job=None):
         audio_result = parent['result']
         caption_steps = [s for s in job_steps if s['adapter'] == 'captions' and s['state'] == 'accepted'
                          and parent['id'] in s['payload'].get('depends_on', [])]
-        visuals = [s for s in job_steps if s['adapter'] == 'visual' and parent['id'] in s['payload'].get('depends_on', [])]
+        visuals = [s for s in job_steps if s['adapter'] == 'visual' and s['state'] != 'reconciled' and parent['id'] in s['payload'].get('depends_on', [])]
         from .workflow import documentary_index
         total_frames = math.ceil(audio_result['duration_seconds'] * 24)
         count = math.ceil(audio_result['duration_seconds'] / 5)

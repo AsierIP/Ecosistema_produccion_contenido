@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import shutil
 import json
+import struct
 from .cache import file_hash
 from .config import write_json
 
@@ -35,8 +36,15 @@ def seal_receipt(receipt, packet, *, generated_root=None):
         if source.suffix.lower() != '.png' or source.stat().st_size > 100_000_000:
             raise ValueError('Invalid image output')
         with source.open('rb') as stream:
-            if stream.read(8) != b'\x89PNG\r\n\x1a\n':
+            header = stream.read(24)
+            if header[:8] != b'\x89PNG\r\n\x1a\n':
                 raise ValueError('Output is not a PNG')
+        if receipt.get('decision') == 'ACCEPT' and packet.get('channel', {}).get('id') == 'sabias-que':
+            if len(header) < 24 or header[12:16] != b'IHDR':
+                raise ValueError('Image lacks a valid PNG size header')
+            width, height = struct.unpack('>II', header[16:24])
+            if height <= width or not height or abs(width / height - 9 / 16) > .04:
+                raise ValueError('Comic reel image must have a vertical 9:16 composition')
         target = output / 'scene.png'
         if source != target:
             if target.exists():

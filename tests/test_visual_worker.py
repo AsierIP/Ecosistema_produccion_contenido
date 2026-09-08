@@ -6,6 +6,19 @@ from ecosystem.visual_worker import prepare_intent, seal_receipt
 
 
 class VisualBookkeepingTests(unittest.TestCase):
+    def test_horizontal_reel_is_rejected_before_import(self):
+        import struct
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            output = root / 'output'
+            output.mkdir()
+            source = root / 'landscape.png'
+            source.write_bytes(b'\x89PNG\r\n\x1a\n' + struct.pack('>I', 13) + b'IHDR' + struct.pack('>II', 1920, 1080))
+            packet = {'output_directory': str(output), 'channel': {'id': 'sabias-que'}}
+            with self.assertRaisesRegex(ValueError, 'vertical'):
+                seal_receipt({'decision': 'ACCEPT', 'artifacts': [{'path': str(source)}]}, packet, generated_root=root)
+            self.assertFalse((output / 'scene.png').exists())
+
     def test_intent_is_exclusive_and_checks_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

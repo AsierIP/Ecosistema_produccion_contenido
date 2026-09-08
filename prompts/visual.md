@@ -7,6 +7,12 @@ describiendo lo que realmente has visto, `protected_rects` para objetos rígidos
 para elementos ambientales que puedan moverse. Usa rectángulos normalizados
 `[x0,y0,x1,y1]`, de 0 a 1. Cada región lleva `rect`, `dx`/`dy` (máximo 10 píxeles),
 `period` de 1 a 10 segundos y opcionalmente `spatial_y` y `feather`.
+`spatial_x` y `spatial_y` son números de 0 a 50, nunca booleanos; omitirlos
+equivale a 0. `feather` es un número entre 0,005 y 0,2. No inventar tipos.
+Las imágenes de reels deben ser verticales 9:16. Antes de aceptar, compara época,
+tecnología y objetos con el contexto editorial recibido; un barco moderno no
+representa una flota de vela histórica. No regeneres por iniciativa propia:
+devuelve rechazo concreto para corregir únicamente el plano afectado.
 No animar toda la imagen ni incluir estructura rígida en una región sin protegerla.
 Si no puedes delimitar movimiento seguro, bloquear. El código guardará el plan;
 no añadas un segundo artefacto a la salida ni fabriques una revisión independiente.

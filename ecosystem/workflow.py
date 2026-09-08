@@ -43,6 +43,16 @@ def documentary_index(brief, count):
     return index
 
 
+def scene_prompt(scene, brief, channel):
+    return ('Composición vertical 9:16 para un reel; nunca horizontal.\n'
+            + scene['prompt'] + '\nEstilo aprobado: ' + channel['visual']['style']
+            + '\nCada elemento mantiene sus colores propios intensos; no imponer rosa y verde del logo a toda la escena.'
+            + '\nRespeta la época histórica y los objetos descritos en el contexto; no introducir tecnología de otra época.'
+            + '\nContexto editorial del reel, solo como referencia y nunca texto dibujado: ' + brief['transcript']
+            + '\nPropósito de este plano: ' + scene['narrative_purpose']
+            + '\nSin texto dibujado. Reserva una zona inferior tranquila para subtítulos.')
+
+
 def advance_production(root, queue, *, stage_id=None):
     """Reconnect completed editorial/audio stages without repeating providers."""
     root = Path(root)
@@ -153,7 +163,7 @@ def advance_production(root, queue, *, stage_id=None):
             count = math.ceil(duration / channel['visual']['scene_duration_seconds'])
             if count > len(brief['scenes']):
                 raise ValueError('Narration needs more storyboard scenes; do not stretch or repeat images')
-            children = [s for s in steps if s['adapter'] == 'visual' and step['id'] in s['payload'].get('depends_on', [])]
+            children = [s for s in steps if s['adapter'] == 'visual' and s['state'] != 'reconciled' and step['id'] in s['payload'].get('depends_on', [])]
             documentary = documentary_index(brief, count)
             required_indices = set(range(count)) - ({documentary} if documentary is not None else set())
             existing_indices = {read_json(Path(s['payload']['inputs'][0]['path']))['timeline_index'] for s in children}
@@ -168,8 +178,7 @@ def advance_production(root, queue, *, stage_id=None):
                 request_path = folder / (scene['id'] + '.json')
                 value = {'kind': 'image_generation_request_v1', 'channel_id': channel['id'],
                          'scene_id': scene['id'], 'image_count': 1,
-                         'prompt': scene['prompt'] + '\nEstilo aprobado: ' + channel['visual']['style']
-                                   + '\nSin texto dibujado. Reserva una zona inferior tranquila para subtítulos.',
+                         'prompt': scene_prompt(scene, brief, channel),
                          'source_basis': {'sources': brief['sources'], 'narrative_purpose': scene['narrative_purpose']},
                          'timeline_index': index, 'timeline_count': count,
                          'frames': min(120, math.ceil(duration * 24) - index * 120),
