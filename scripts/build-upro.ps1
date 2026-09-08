@@ -43,6 +43,7 @@ using System.Windows.Forms;
 
 internal static class UproLauncher {
     private const string BuiltPython = @"__PYTHON__";
+    private const string BuiltRoot = @"__ROOT__";
     // Quote one Windows argument, including trailing slashes and literal quotes.
     private static string Quote(string value) {
         StringBuilder result = new StringBuilder("\"");
@@ -66,6 +67,8 @@ internal static class UproLauncher {
                 Directory.Exists(Path.Combine(candidate.FullName, "channels"))) return candidate.FullName;
             candidate = candidate.Parent;
         }
+        if (File.Exists(Path.Combine(BuiltRoot, "scripts", "upro_launcher.py")) &&
+            Directory.Exists(Path.Combine(BuiltRoot, "channels"))) return BuiltRoot;
         throw new Exception("No encuentro el proyecto Upro. Manten Upro.exe dentro del repositorio o indica --root.");
     }
     [STAThread]
@@ -98,6 +101,7 @@ internal static class UproLauncher {
 }
 '@
     $source = $source.Replace('__PYTHON__', $pythonExe.Replace('"', '""'))
+    $source = $source.Replace('__ROOT__', $repo.Replace('"', '""'))
     $sourceFile = Join-Path $buildDir 'UproLauncher.cs'
     [IO.File]::WriteAllText($sourceFile, $source, (New-Object Text.UTF8Encoding($false)))
     $exe = Join-Path $distDir 'Upro.exe'

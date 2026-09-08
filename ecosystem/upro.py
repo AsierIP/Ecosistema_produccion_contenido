@@ -29,7 +29,7 @@ STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y des
                 "captions": "Subtítulos sincronizados", "av_review": "Revisión audiovisual automática",
                 "visual": "Creación de imágenes", "vibes_generate": "Generación de clips en Vibes",
                 "segment_review": "Revisión audiovisual del clip", "segment_quality": "Selección independiente del clip",
-                "native_conform": "Movimiento fluido con la GPU"}
+                "native_conform": "Movimiento fluido con la GPU", "native_visual": "Montaje visual de Religion"}
 
 
 def now():
@@ -220,6 +220,9 @@ class Controller:
                         continue
                     for step in relevant:
                         if step["state"] != "queued" or (step["mode"] == "production" and not channel["ready"]):
+                            continue
+                        from .native_timeline import native_voice_ready
+                        if not native_voice_ready(step, self.queue):
                             continue
                         if step["mode"] == "canary":
                             profile = next(c for c in load_channels(self.root) if c["id"] == cid)

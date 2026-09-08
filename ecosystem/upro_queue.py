@@ -22,6 +22,7 @@ ADAPTERS.add('segment_review')
 ADAPTERS.add('segment_quality')
 ADAPTERS.add('vibes_generate')
 ADAPTERS.add('native_conform')
+ADAPTERS.add('native_visual')
 GPU_ADAPTERS = {"cutout", "ambient", "native_conform"}
 
 
@@ -236,6 +237,12 @@ def execute_step(root, step):
             # The controller persists accepted first, then resumes this handoff
             # on every tick. A crash here must not replay a remote operation.
             result['followup_pending'] = True
+    elif adapter == 'native_visual':
+        from .native_timeline import build_native_visual
+        if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
+            raise ValueError('Expected one channel-bound native visual request')
+        result = build_native_visual(paths[0], out, root=root)
+        accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == 'native_conform':
         from .native_conform import conform
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
@@ -281,6 +288,9 @@ def execute_step(root, step):
         result = prepare_captions(paths[0], out, root=root)
         accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == 'voice_generate':
+        from .native_timeline import native_voice_ready
+        if not native_voice_ready(step, Queue(root)):
+            raise ValueError('La narración nativa espera a que terminen las escenas y el montaje visual')
         from .voice_generate import generate_voice
         from .store import Store
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
