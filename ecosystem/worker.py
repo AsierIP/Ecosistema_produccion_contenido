@@ -154,6 +154,12 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
     if not artifacts:
         return {"status": "BLOCKED", "reason": "Faltan entradas concretas: ficha de fuentes, guion aprobado o máster con evidencias según la etapa"}
     unit_id = 'stage'
+    if role == 'creative':
+        from .editorial_history import creative_context_preflight
+        try:
+            unit_id = creative_context_preflight(read_json(Path(packet['packet_path']))) or unit_id
+        except (ValueError, OSError, KeyError) as exc:
+            return {'status': 'BLOCKED', 'reason': str(exc), 'agent_started': False}
     if role == 'release':
         from .release_worker import release_request
         try:
