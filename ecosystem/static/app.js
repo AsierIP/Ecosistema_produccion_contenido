@@ -511,7 +511,7 @@
       if (!data.sequences.length) container.append(node('p','', 'Todavía no hay secuencias guardadas.'));
       for (const item of data.sequences) {
         const card = node('article','sequence-card');
-        card.append(node('h3','',({olive:'Olivar',coast:'Costa',courtyard:'Patio con fuente'})[item.environment] || item.environment));
+        card.append(node('h3','',({olive:'Olivar',coast:'Costa',courtyard:'Patio con fuente','forest-stream':'Arroyo del bosque','wheat-field':'Campo de trigo','mountain-lake':'Lago de montaña','village-garden':'Jardín del pueblo','desert-oasis':'Oasis','waterfall':'Cascada','vineyard':'Viñedo'})[item.environment] || item.environment));
         card.append(node('p','',item.ready ? '30 segundos · Lista para reutilizar' : '30 segundos · En comprobación'));
         const video = node('video','sequence-video');
         video.controls = true; video.preload = 'none';

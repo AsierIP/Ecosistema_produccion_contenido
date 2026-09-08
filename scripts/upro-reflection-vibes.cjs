@@ -13,21 +13,22 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
  const output=path.resolve(r.output);if(!/^E:\\/i.test(output))throw Error('Media must stay on E:');fs.mkdirSync(output,{recursive:true});
  const profile=path.join(root,'.runtime/browser-profiles/religion');
  const releaseProfile=await acquireProfile(profile,10000);
- let context;
+ let context,page;
  try{
   context=await chromium.launchPersistentContext(profile,{channel:'chrome',headless:true,locale:'es-ES',acceptDownloads:true,downloadsPath:output});
-  const page=await context.newPage();
+  page=await context.newPage();
   const cards=()=>page.locator('[data-analytics-id="creation_gallery.thumbnail_click"]');
   const gallery=async()=>{
    await page.goto(r.project_url);await page.waitForTimeout(1500);
    const login=page.getByRole('button',{name:'Iniciar sesión',exact:true});
+   await Promise.any([login.waitFor({state:'visible',timeout:30000}),cards().first().waitFor({state:'attached',timeout:30000})]);
    if(await login.isVisible()){
     // Re-enter the already authenticated SSO session; never fill credentials here.
     await login.click();await page.getByText('Proyectos',{exact:true}).first().waitFor({timeout:20000});
     await page.goto(r.project_url);
    }
-   await cards().first().waitFor({timeout:30000});await page.waitForLoadState('networkidle',{timeout:10000}).catch(()=>{});
-   return cards().evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-analytics-media-id'),video:!!e.querySelector('video[src]')})));
+   await cards().first().waitFor({state:'attached',timeout:30000});await page.waitForLoadState('networkidle',{timeout:10000}).catch(()=>{});
+   return cards().evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-analytics-media-id'),video:!!e.querySelector('video[src]'),label:(e.innerText||'').trim()})));
   };
   for(const [i,item] of r.items.entries()){
    const receipt=path.join(output,`animation-${String(i+1).padStart(2,'0')}.json`),file=path.join(output,`native-${String(i+1).padStart(2,'0')}.mp4`);
@@ -58,6 +59,7 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
     const deadline=Date.now()+180000;let fresh=[];
     do{
      all=await gallery();fresh=all.filter(v=>v.video&&!intent.prior_media_ids.includes(v.id));
+     if(item.source_filename) fresh=fresh.filter(v=>v.label===item.source_filename);
      if(fresh.length>1)throw Error('Ambiguous animation identity');
      if(fresh.length===1)break;await page.waitForTimeout(5000);
     }while(Date.now()<deadline);
@@ -78,5 +80,8 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
    intent={...intent,state:'downloaded',path:file,sha256:hash(file),completed_at:new Date().toISOString()};write(receipt,intent);
    console.log(JSON.stringify({block:i+1,state:intent.state,path:file}));
   }
+ }catch(error){
+  if(page){try{const u=new URL(page.url());write(path.join(output,'failure-'+Date.now()+'.json'),{message:error.message,page:u.origin+u.pathname,body:(await page.locator('body').innerText({timeout:3000})).slice(0,5000),card_count:await page.locator('[data-analytics-id="creation_gallery.thumbnail_click"]').count()});}catch{}}
+  throw error;
  }finally{if(context)await context.close();await releaseProfile();}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

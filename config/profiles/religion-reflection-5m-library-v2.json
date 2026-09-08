@@ -13,7 +13,8 @@
     "environment_motion": "visible natural waves, flowing fountain, wind in vegetation and fabric",
     "native_slowdown_max": 2,
     "second_slowdown": false,
-    "interpolate_across_cuts": false
+    "interpolate_across_cuts": false,
+    "body_pose_variation": "Change body posture between 30-second sequences: seated/standing, torso orientation and hand placement; preserve character identity. A location change alone is insufficient."
   },
   "voice": {
     "id": "Gacrux",

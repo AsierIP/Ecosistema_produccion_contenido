@@ -8,7 +8,9 @@ No modifica el contrato de los Shorts ni sus reglas de mirada diegética.
 ## Biblioteca fotorrealista vigente
 
 - Estética fotorrealista cinematográfica como los reels, misma identidad de Jesús.
-- Cambio de lugar cada 30 segundos, con movimiento visible de agua, vegetación y telas.
+- Cambio de lugar y postura corporal cada 30 segundos, con movimiento visible de agua, vegetación y telas.
+  Alternar posiciones sentadas y de pie, giro del torso y colocación de manos.
+  Cambiar solo el fondo manteniendo la misma pose no satisface la variedad solicitada.
 - Cada secuencia silenciosa contiene tres tomas de 10 segundos. Cada toma nativa
   se interpola a 2x una sola vez; no se vuelve a ralentizar el resultado.
 - Reutilización aprobada en ciclos o mediante selección aleatoria equilibrada.

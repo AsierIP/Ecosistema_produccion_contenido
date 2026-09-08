@@ -184,6 +184,12 @@ def assemble(blocks, narration, music, subtitles, output, *, root=ROOT, sequence
         raise ValueError('Preserve an existing prototype master')
     with wave.open(str(narration)) as wav:
         duration = wav.getnframes() / wav.getframerate()
+    voice_duration = duration
+    if sequence_plan is not None:
+        visual_duration = sequence_plan['duration_seconds']
+        if not math.isfinite(visual_duration) or not 0 <= visual_duration - voice_duration <= 15:
+            raise ValueError('Visual timeline may add at most 15 seconds of music after unchanged narration')
+        duration = visual_duration
     if sequence_plan is None:
         expected = block_frame_counts(duration)
         for p, count in zip(paths, expected):
@@ -213,7 +219,7 @@ def assemble(blocks, narration, music, subtitles, output, *, root=ROOT, sequence
     refs = [{'path': str(p.resolve()), 'sha256': file_hash(p)} for p in paths + [narration, music, subtitles]]
     write_json(work / 'inputs.json', refs, exclusive=True)
     ass = str(subtitles.resolve()).replace('\\','/').replace(':', '\\:').replace("'", "\\'")
-    graph = (f"[0:v]ass=filename='{ass}'[v];[1:a]aresample=48000[voice];"
+    graph = (f"[0:v]ass=filename='{ass}'[v];[1:a]aresample=48000,apad,atrim=0:{duration:.6f}[voice];"
              f"[2:a]aresample=48000,volume=0.10,apad,atrim=0:{duration:.6f},afade=t=out:st={duration-4:.6f}:d=4[bed];"
              "[voice][bed]amix=inputs=2:duration=first:normalize=0,loudnorm=I=-16:TP=-1.5:LRA=11[a]")
     command = [tools['ffmpeg'], '-nostdin', '-n', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', str(listing),
@@ -232,6 +238,7 @@ def assemble(blocks, narration, music, subtitles, output, *, root=ROOT, sequence
     result = {'status':'TECHNICAL_PASS','path':str(output.resolve()),'sha256':file_hash(output),
               'duration_seconds':sum(expected)/24,'frames':sum(expected),'visual_blocks':len(paths),'voice_speed_factor':1.0,
               'library_plan_id':sequence_plan['plan_id'] if sequence_plan else None,
+              'narration_duration_seconds':voice_duration,'music_only_tail_seconds':duration-voice_duration,
               'inputs':refs,'independent_audiovisual_review':'pending','publication':'not_uploaded'}
     write_json(output.with_suffix('.json'), result, exclusive=True)
     return result
