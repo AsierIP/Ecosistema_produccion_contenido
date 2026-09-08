@@ -1,5 +1,17 @@
 # Etapa quality
 
+Presupuesto de lectura: carga JSON con código y selecciona los campos necesarios;
+no vuelques archivos completos de respuestas de proveedores, firmas opacas,
+listas de hashes de cada fotograma ni registros de ejecución. La integridad de un
+archivo se comprueba por hash sin incorporar todo su contenido al contexto.
+En QA final nativo, empieza por el resumen audiovisual, el guion, los metadatos,
+la evidencia compacta de timeline y las licencias. Para los recibos de escenas,
+selecciona decisión, defectos, observaciones y vínculos; consulta el detalle solo
+si aparece una discrepancia concreta. Agrupa las comprobaciones técnicas
+independientes y conserva sus salidas resumidas. Un intento anterior incompleto
+puede aportar comprobaciones y contactos ligados por hash, nunca un PASS supuesto.
+Emite el recibo final con las limitaciones observadas antes del límite de tiempo.
+
 Si `quality_preflight_v1.scope` es `native_segment`, revisas un segmento SILENCIOSO
 de Religion pro v5, no el máster final. Aplica la skill de quality pro v5 y el
 esquema aportados como entradas. Usa las observaciones audiovisuales automáticas
