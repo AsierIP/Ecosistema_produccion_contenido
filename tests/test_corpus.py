@@ -1,9 +1,28 @@
 from pathlib import Path
 import tempfile
 import unittest
-from ecosystem.corpus import Corpus
+from ecosystem.corpus import Corpus, editorial_passage_eligible
 
 class CorpusTests(unittest.TestCase):
+    def test_front_matter_is_filtered_and_source_replacement_preserves_prior_selection(self):
+        self.assertFalse(editorial_passage_eligible('book:pdf-page-4:offset-0', 'Título original: ' + 'Créditos editoriales. ' * 80))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); corpus = Corpus(root / 'corpus.sqlite3')
+            with corpus._connect() as con:
+                con.execute('INSERT INTO sources VALUES(?,?,?)', ('book', 'bound-source', 'fixture'))
+                for page in (6, 10, 11, 12):
+                    con.execute('INSERT INTO passages VALUES(?,?,?)', ('book', f'book:pdf-page-{page}:offset-0',
+                        'Un pasaje narrativo con contexto suficiente y palabras de ejemplo. ' * 10))
+            con.close()
+            first = corpus.reserve('book', 'channel', 'job', limit=1)
+            second = corpus.reserve('book', 'channel', 'job', limit=1, selection_round=2, min_pdf_page=10)
+            self.assertIn('page-6:', first[0]['locator'])
+            self.assertIn('page-10:', second[0]['locator'])
+            self.assertEqual(corpus.reserve('book', 'channel', 'job', limit=1), first)
+            self.assertEqual(corpus.reserve('book', 'channel', 'job', limit=1, selection_round=2, min_pdf_page=10), second)
+            with self.assertRaises(ValueError):
+                corpus.reserve('book', 'channel', 'job', selection_round=4)
+
     def test_index_cache_replacement_and_cross_source_isolation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

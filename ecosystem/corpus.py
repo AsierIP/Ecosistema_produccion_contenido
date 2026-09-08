@@ -8,6 +8,20 @@ import re
 import sqlite3
 from .cache import file_hash
 
+def editorial_passage_eligible(locator, text):
+    """Filter obvious book front matter locally; this is not factual approval."""
+    normalized = re.sub(r'\s+', ' ', text).strip().casefold()
+    if len(normalized) < 100:
+        return False
+    if ':pdf-page-' not in locator:
+        return True  # Short verse passages use a different source contract.
+    markers = ('i.s.b.n.', 'isbn:', 'título original:', 'editor original:',
+               'epub v', 'epub base', 'diseño/retoque portada:', 'un compendio de hechos')
+    if any(marker in normalized for marker in markers):
+        return False
+    return len(re.findall(r'\b[^\W\d_]{2,}\b', normalized)) >= 65
+
+
 class Corpus:
     def __init__(self, database):
         self.database = Path(database)
@@ -100,10 +114,16 @@ CREATE VIRTUAL TABLE IF NOT EXISTS passages USING fts5(source_id UNINDEXED, loca
         with closing(self._connect()) as con:
             return [dict(row) for row in con.execute("SELECT source_id,locator,text FROM passages WHERE passages MATCH ? AND source_id=? ORDER BY rank LIMIT ?", (safe_query, source_id, limit))]
 
-    def reserve(self, source_id, channel_id, job_id, limit=3):
+    def reserve(self, source_id, channel_id, job_id, limit=3, *, selection_round=1, min_pdf_page=None):
         """Persist bounded editorial candidates; selection is not factual approval."""
         if not 1 <= limit <= 5:
             raise ValueError('Candidate limit must be between 1 and 5')
+        if type(selection_round) is not int or not 1 <= selection_round <= 3:
+            raise ValueError('Editorial source replacement is bounded to three rounds')
+        if min_pdf_page is not None and (type(min_pdf_page) is not int or min_pdf_page < 1):
+            raise ValueError('Invalid editorial PDF starting page')
+        if selection_round > 1:
+            job_id = f'{job_id}:selection-round:{selection_round}'
         with closing(self._connect()) as con:
             con.execute('BEGIN IMMEDIATE')
             con.execute('CREATE TABLE IF NOT EXISTS editorial_selections '
@@ -120,7 +140,10 @@ CREATE VIRTUAL TABLE IF NOT EXISTS passages USING fts5(source_id UNINDEXED, loca
                                                           (source_id, channel_id)) for item in json.loads(row['passages'])}
             selected = []
             for row in con.execute('SELECT source_id,locator,text FROM passages WHERE source_id=? ORDER BY rowid', (source_id,)):
-                if row['locator'] not in used and len(row['text'].strip()) >= 100:
+                page = re.search(r':pdf-page-(\d+):', row['locator'])
+                if min_pdf_page is not None and (not page or int(page[1]) < min_pdf_page):
+                    continue
+                if row['locator'] not in used and editorial_passage_eligible(row['locator'], row['text']):
                     selected.append(dict(row))
                     if len(selected) == limit:
                         break

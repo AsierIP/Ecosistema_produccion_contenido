@@ -18,6 +18,8 @@ class WorkflowTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         shutil.copytree(ROOT / 'channels', self.root / 'channels')
         self.channel = next(c for c in load_channels(self.root) if c['id'] == 'sabias-que')
+        self.channel['sources'][0].pop('editorial_start_pdf_page', None)
+        write_json(self.root / 'channels/sabias-que.json', self.channel)
         self.source = self.root / 'fixture-book.txt'
         self.source.write_text('\n'.join(f'Pasaje de prueba número {i}. ' + ('Contenido de prueba. ' * 10) for i in range(9)), encoding='utf-8')
         self.source_id = self.channel['sources'][0]['id']

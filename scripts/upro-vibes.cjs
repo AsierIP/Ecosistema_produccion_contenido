@@ -15,7 +15,10 @@ const write = (p, value) => {fs.mkdirSync(path.dirname(p), {recursive:true}); fs
   let intent = fs.existsSync(intentPath) ? read(intentPath) : null;
   if (intent && intent.request_sha256 !== fingerprint) throw Error('Provider request changed');
   if (intent && intent.state === 'downloaded') {console.log(JSON.stringify(intent)); return;}
-  if (intent) throw Error('Existing Vibes intent requires reconciliation; generation will not be repeated');
+  if (intent && intent.state !== 'generated') throw Error('Existing Vibes intent requires reconciliation; generation will not be repeated');
+  if (intent && (!Array.isArray(intent.media_ids) || intent.media_ids.length !== 4
+      || new Set(intent.media_ids).size !== 4 || intent.project_url !== request.project_url))
+    throw Error('Saved generated batch lost its identity');
   if (request.kind !== 'vibes_native_batch_v1' || request.channel_id !== 'religion' || request.count !== 4
       || !/^https:\/\/vibes\.ai\/projects\/[a-f0-9-]+$/.test(request.project_url)) throw Error('Invalid native Vibes request');
   for (const source of request.inputs) if (hash(source.path)!==source.sha256) throw Error('Changed provider input');
@@ -30,6 +33,7 @@ const write = (p, value) => {fs.mkdirSync(path.dirname(p), {recursive:true}); fs
     await page.waitForTimeout(6000);
     await page.getByText(request.project_title,{exact:true}).waitFor();
     const cards = () => page.locator('[data-analytics-id="creation_gallery.thumbnail_click"]');
+    if (!intent) {
     const prior = await cards().evaluateAll(elements=>elements.map(e=>e.getAttribute('data-analytics-media-id')));
     await page.getByRole('button',{name:'Start, end frame',exact:true}).click();
     await page.getByRole('button',{name:'Add start frame',exact:true}).click();
@@ -71,8 +75,16 @@ const write = (p, value) => {fs.mkdirSync(path.dirname(p), {recursive:true}); fs
     const batchIds=new Set(fresh.map(v=>v.id.replace(/-content-\d+$/,'')));
     if(batchIds.size!==1) throw Error('New candidates belong to different batches');
     intent.state='generated';intent.media_ids=fresh.map(v=>v.id).sort();write(intentPath,intent);
-    const candidates=[];
+    }
+    const candidates=intent.candidates || [];
+    if (candidates.length > 4) throw Error('Invalid saved download count');
+    for (const [index,candidate] of candidates.entries()) {
+      const expected=path.join(media,`candidate_${String(index+1).padStart(2,'0')}.mp4`);
+      if (path.resolve(candidate.path)!==expected || candidate.media_id!==intent.media_ids[index]
+          || !fs.existsSync(expected) || hash(expected)!==candidate.sha256) throw Error('Saved download changed');
+    }
     for(const [index,id] of intent.media_ids.entries()){
+      if (index < candidates.length) continue;
       const target=page.locator(`[data-analytics-id="creation_gallery.thumbnail_click"][data-analytics-media-id="${id}"]`);
       await target.getByRole('button',{name:'More actions',exact:true}).click();
       const download=page.waitForEvent('download');

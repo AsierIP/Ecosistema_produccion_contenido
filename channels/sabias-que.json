@@ -7,7 +7,7 @@
   "language": "es-ES",
   "theme": "Curiosidades verificables",
   "audience": "Público general hispanohablante interesado en curiosidades verificables",
-  "sources": [{"id": "doval-enciclopedia-curiosidades-1994", "title": "Enciclopedia de las curiosidades: El libro de los hechos insólitos", "author": "Gregorio Doval", "kind": "local_pdf", "locator_required": true, "redistribute": false}],
+  "sources": [{"id": "doval-enciclopedia-curiosidades-1994", "title": "Enciclopedia de las curiosidades: El libro de los hechos insólitos", "author": "Gregorio Doval", "kind": "local_pdf", "locator_required": true, "redistribute": false, "editorial_start_pdf_page": 10}],
   "editorial_policy": "separate_claim_source_evidence_script_adaptation_on_screen_text",
   "fact_check_required": true,
   "visual": {

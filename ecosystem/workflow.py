@@ -194,7 +194,8 @@ def seed_ready_jobs(root, daily_plan, queue, *, mode='production'):
         for source in channel['sources']:
             path = Path(local['channels'][channel['id']]['source_paths'][source['id']])
             indexed = corpus.index(source['id'], path)
-            excerpts.extend(corpus.reserve(source['id'], channel['id'], job['job_id']))
+            excerpts.extend(corpus.reserve(source['id'], channel['id'], job['job_id'],
+                                           min_pdf_page=source.get('editorial_start_pdf_page')))
             provenance.append({'source_id': source['id'], 'title': source['title'], 'sha256': indexed['sha256']})
         if not excerpts:
             raise ValueError('No source excerpts available for ' + channel['id'])
