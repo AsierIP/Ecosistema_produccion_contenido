@@ -23,6 +23,7 @@ ADAPTERS.add('segment_quality')
 ADAPTERS.add('vibes_generate')
 ADAPTERS.add('native_conform')
 ADAPTERS.add('native_visual')
+ADAPTERS.add('native_master')
 GPU_ADAPTERS = {"cutout", "ambient", "native_conform"}
 
 
@@ -237,6 +238,13 @@ def execute_step(root, step):
             # The controller persists accepted first, then resumes this handoff
             # on every tick. A crash here must not replay a remote operation.
             result['followup_pending'] = True
+    elif adapter == 'native_master':
+        from .native_master import build_native_master
+        if (len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']
+                or read_json(paths[0]).get('job_id') != plan['job_id']):
+            raise ValueError('Expected one job-bound native master request')
+        result = build_native_master(paths[0], out, root=root)
+        accepted = result.get('status') == 'TECHNICAL_PASS'
     elif adapter == 'native_visual':
         from .native_timeline import build_native_visual
         if len(paths) != 1 or read_json(paths[0]).get('channel_id') != plan['channel_id']:
