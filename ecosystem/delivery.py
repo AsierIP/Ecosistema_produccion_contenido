@@ -51,6 +51,13 @@ def advance_delivery(root, queue):
                 raise ValueError('; '.join(issues))
             if qa.get('metadata_sha256') != metadata[0]['sha256']:
                 raise ValueError('Independent QA does not bind the publication text')
+            from .store import Store
+            with Store(root / '.runtime/production.sqlite3') as store:
+                prior_releases = [i for i in store.list_intents(step['job_id'])
+                    if i['action'] == 'publish' and i['state'] == 'verified'
+                    and i['master_sha256'] != qa['master_sha256']]
+            if prior_releases:
+                raise ValueError('Este trabajo ya contiene otra publicación verificada; reconciliar el registro histórico antes de subir el nuevo contenido')
             platform = channel['platforms']['youtube']
             if platform.get('enabled') is not True:
                 continue

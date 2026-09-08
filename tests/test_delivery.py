@@ -49,6 +49,16 @@ class DeliveryTests(unittest.TestCase):
         error = self.root / '.runtime/jobs' / self.job['id'] / 'handoffs/error-delivery-review.json'
         self.assertEqual(read_json(error)['status'], 'blocked')
 
+    def test_legacy_job_with_another_published_master_requires_reconciliation(self):
+        from unittest.mock import patch
+        queue = self.review_step()
+        with patch('ecosystem.store.Store.list_intents', return_value=[
+                {'action': 'publish', 'state': 'verified', 'master_sha256': 'f' * 64}]):
+            self.assertEqual(advance_delivery(self.root, queue), [])
+        error = self.root / '.runtime/jobs' / self.job['id'] / 'handoffs/error-delivery-review.json'
+        self.assertIn('registro histórico', read_json(error)['reason'])
+        self.assertEqual(len(queue.list()), 1)
+
     def test_missing_independent_qa_cannot_be_delivered(self):
         queue = self.review_step()
         self.qa['checks']['independent_review']['passed'] = False

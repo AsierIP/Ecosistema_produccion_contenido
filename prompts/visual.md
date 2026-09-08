@@ -23,6 +23,9 @@ tecnología y objetos con el contexto editorial recibido; un barco moderno no
 representa una flota de vela histórica. No regeneres por iniciativa propia:
 devuelve rechazo concreto para corregir únicamente el plano afectado.
 No animar toda la imagen ni incluir estructura rígida en una región sin protegerla.
+Comprueba que las regiones móviles tengan superficie fuera de la unión de los
+rectángulos protegidos. Si toda la región está protegida, no se moverá ningún
+píxel: vuelve a delimitar los objetos a partir de la imagen, sin desprotegerlos.
 Si no puedes delimitar movimiento seguro, bloquear. El código guardará el plan;
 no añadas un segundo artefacto a la salida ni fabriques una revisión independiente.
 

@@ -53,6 +53,41 @@ def scene_prompt(scene, brief, channel):
             + '\nSin texto dibujado. Reserva una zona inferior tranquila para subtítulos.')
 
 
+def retire_unused_documentary_animations(root, queue):
+    """Reconcile legacy failed animations replaced by an immutable documentary."""
+    steps = queue.list()
+    indexed = {s['id']: s for s in steps}
+    retired = []
+    for step in steps:
+        if step['adapter'] != 'ambient' or step['state'] not in {'blocked', 'uncertain'}:
+            continue
+        if any(step['id'] in s['payload'].get('depends_on', []) and s['state'] != 'reconciled' for s in steps):
+            continue
+        parents = [indexed[p] for p in step['payload'].get('depends_on', []) if p in indexed]
+        if len(parents) != 1 or parents[0]['adapter'] != 'visual':
+            continue
+        try:
+            ref = parents[0]['payload']['inputs'][0]
+            path = Path(ref['path'])
+            if file_hash(path) != ref['sha256']:
+                continue
+            request = read_json(path)
+            brief_path = Path(request['brief_path'])
+            if file_hash(brief_path) != request['brief_sha256']:
+                continue
+            brief = read_json(brief_path)
+            if request['timeline_index'] != documentary_index(brief, request['timeline_count']):
+                continue
+            queue.retire(step['id'], {'checked': True,
+                'reason': 'Legacy animation is not used by the documentary timeline slot. The verified original replaces it directly; no dependent production stage uses this animation.',
+                'previous_result': step.get('result'), 'brief_sha256': request['brief_sha256'],
+                'documentary_sha256': brief['documentary']['sha256']})
+            retired.append(step['id'])
+        except (ValueError, KeyError, OSError, TypeError):
+            continue
+    return retired
+
+
 def advance_production(root, queue, *, stage_id=None):
     """Reconnect completed editorial/audio stages without repeating providers."""
     root = Path(root)
@@ -60,6 +95,7 @@ def advance_production(root, queue, *, stage_id=None):
     steps = queue.list()
     created = []
     if stage_id is None:
+        retire_unused_documentary_animations(root, queue)
         for step in steps:
             if step['state'] != 'accepted' or step['adapter'] not in {'creative', 'voice_generate', 'visual'}:
                 continue

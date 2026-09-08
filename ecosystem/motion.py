@@ -1,6 +1,18 @@
 """Validate bounded environmental motion plans without asserting visual review."""
 import math
 
+
+def has_unprotected_area(rectangle, protected):
+    x0, y0, x1, y1 = rectangle
+    xs = sorted({x0, x1, *(max(x0, min(x1, x)) for r in protected for x in (r[0], r[2]))})
+    ys = sorted({y0, y1, *(max(y0, min(y1, y)) for r in protected for y in (r[1], r[3]))})
+    for left, right in zip(xs, xs[1:]):
+        for top, bottom in zip(ys, ys[1:]):
+            x, y = (left + right) / 2, (top + bottom) / 2
+            if right > left and bottom > top and not any(r[0] <= x <= r[2] and r[1] <= y <= r[3] for r in protected):
+                return True
+    return False
+
 def validate_motion(plan):
     def rect(value):
         return (isinstance(value, list) and len(value) == 4
@@ -24,4 +36,6 @@ def validate_motion(plan):
                 raise ValueError('Out-of-range motion parameter: ' + key)
         if region.get('dx', 0) == region.get('dy', 0) == 0:
             raise ValueError('A static region does not establish continuous motion')
+    if not any(has_unprotected_area(r['rect'], protected) for r in regions):
+        raise ValueError('All motion regions are fully covered by protected rectangles')
     return plan
