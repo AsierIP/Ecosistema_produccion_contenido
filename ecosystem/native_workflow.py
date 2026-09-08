@@ -4,6 +4,7 @@ from .config import read_json, write_json
 from .native_batch import advance_native_batches
 from .native_sequence import advance_native_sequences
 from .native_conform import advance_native_conforms
+from .religion_captions import advance_native_captions
 from .segment_review import recover_native_rejection, retry_transient_segment_review, resume_saved_segment_review
 
 
@@ -23,6 +24,7 @@ def advance_native_jobs(root, queue):
             advance_native_batches(root, queue, only_job=job_id)
             advance_native_sequences(root, queue, only_job=job_id)
             advance_native_conforms(root, queue, only_job=job_id)
+            advance_native_captions(root, queue, only_job=job_id)
         except (ValueError, KeyError, OSError, RuntimeError, TypeError) as exc:
             blocked.add(job_id)
             problem = {'status': 'blocked', 'job_id': job_id, 'reason': str(exc)}

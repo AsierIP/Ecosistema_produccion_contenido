@@ -12,8 +12,11 @@ from .media import discover
 
 def prepare_captions(request_path, output, *, root):
     request = read_json(Path(request_path))
-    if request.get('kind') != 'comic_captions_v1' or request.get('channel_id') != 'sabias-que':
-        raise ValueError('This caption profile is only approved for the comic channel')
+    profiles = {('comic_captions_v1', 'sabias-que'): 'sq-bottom-electric-v1',
+                ('religion_captions_v1', 'religion'): 'early-reels-ivory-gold-v01'}
+    profile = profiles.get((request.get('kind'), request.get('channel_id')))
+    if not profile:
+        raise ValueError('Caption request does not match an approved channel profile')
     source = Path(request['audio_path']).resolve(strict=True)
     if file_hash(source) != request['audio_sha256']:
         raise ValueError('Narration changed before transcription')
@@ -22,7 +25,7 @@ def prepare_captions(request_path, output, *, root):
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     receipt_path = output / 'captions-result.json'
-    binding = {'audio_sha256': file_hash(source), 'transcript': request['transcript'], 'profile': 'sq-bottom-electric-v1'}
+    binding = {'audio_sha256': file_hash(source), 'transcript': request['transcript'], 'profile': profile}
     if receipt_path.exists():
         previous = read_json(receipt_path)
         if (previous['binding'] != binding or file_hash(Path(previous['path'])) != previous['sha256']
@@ -51,7 +54,11 @@ def prepare_captions(request_path, output, *, root):
                 creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         if completed.returncode:
             raise ValueError('Local transcription failed; inspect the saved result')
-    result = build_captions(request['transcript'], read_json(asr_path)['words'], output / 'captions.ass', duration=duration)
+    builder = build_captions
+    if profile == 'early-reels-ivory-gold-v01':
+        from .religion_captions import build_religion_captions
+        builder = build_religion_captions
+    result = builder(request['transcript'], read_json(asr_path)['words'], output / 'captions.ass', duration=duration)
     result.update(status='TECHNICAL_PASS', binding=binding, sha256=file_hash(Path(result['path'])),
                   asr_sha256=file_hash(asr_path), provider_calls=0, agent_tokens=0, independent_listening='pending')
     write_json(receipt_path, result, exclusive=True)
@@ -101,7 +108,9 @@ def align_number_spans(expected, words):
     return expanded
 
 
-def build_captions(transcript, words, output, *, duration):
+def validated_words(transcript, words, duration):
+    if not isinstance(duration, (int, float)) or isinstance(duration, bool) or not math.isfinite(duration) or duration <= 0:
+        raise ValueError('Invalid narration duration')
     if any(c in transcript for c in '\\{}\r\n'):
         raise ValueError('Narration contains subtitle control characters')
     expected = transcript.split()
@@ -115,6 +124,11 @@ def build_captions(transcript, words, output, *, duration):
                 or not previous <= start < end <= duration + .05):
             raise ValueError('Invalid or overlapping ASR word timing')
         previous = end
+    return expected, words
+
+
+def build_captions(transcript, words, output, *, duration):
+    expected, words = validated_words(transcript, words, duration)
     output = Path(output)
     if output.exists() or output.with_suffix('.json').exists():
         raise ValueError('Existing captions must not be overwritten')
