@@ -19,9 +19,15 @@ from .dispatch import build_packet, validate_receipt
 
 
 def subscription_environment():
-    """Do not let a shell API-key override switch a subscribed worker to billing."""
+    """Use the subscription without inheriting another app task's IPC identity.
+
+    Security/sandbox variables and installed tool configuration are preserved.
+    The caller's session pipe may disappear or wait forever after that task ends.
+    """
     return {key: value for key, value in os.environ.items()
-            if key.upper() not in {'OPENAI_API_KEY', 'CODEX_API_KEY'}}
+            if key.upper() not in {'OPENAI_API_KEY', 'CODEX_API_KEY',
+                                  'CODEX_APP_TOOLS_PIPE_PATH', 'CODEX_THREAD_ID',
+                                  'CODEX_SESSION_ID', 'CODEX_INTERNAL_ORIGINATOR_OVERRIDE'}}
 
 
 def visual_preflight(packet):

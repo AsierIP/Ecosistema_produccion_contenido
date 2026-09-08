@@ -13,11 +13,18 @@ from ecosystem.worker import collect_usage, run_stage, subscription_environment,
 
 class WorkerBoundaryTests(unittest.TestCase):
     def test_subscription_workers_strip_api_key_overrides(self):
-        with patch.dict('os.environ', {'OPENAI_API_KEY': 'fixture', 'CODEX_API_KEY': 'fixture', 'UPRO_TEST': 'kept'}):
+        with patch.dict('os.environ', {'OPENAI_API_KEY': 'fixture', 'CODEX_API_KEY': 'fixture', 'UPRO_TEST': 'kept',
+                'CODEX_THREAD_ID': 'caller', 'CODEX_SESSION_ID': 'caller',
+                'CODEX_APP_TOOLS_PIPE_PATH': 'caller-pipe', 'CODEX_INTERNAL_ORIGINATOR_OVERRIDE': 'caller',
+                'CODEX_SANDBOX_NETWORK_DISABLED': '1', 'CODEX_PERMISSION_PROFILE': 'preserved'}):
             env = subscription_environment()
         self.assertNotIn('OPENAI_API_KEY', env)
         self.assertNotIn('CODEX_API_KEY', env)
         self.assertEqual(env['UPRO_TEST'], 'kept')
+        for key in ('CODEX_THREAD_ID', 'CODEX_SESSION_ID', 'CODEX_APP_TOOLS_PIPE_PATH', 'CODEX_INTERNAL_ORIGINATOR_OVERRIDE'):
+            self.assertNotIn(key, env)
+        self.assertEqual(env['CODEX_SANDBOX_NETWORK_DISABLED'], '1')
+        self.assertEqual(env['CODEX_PERMISSION_PROFILE'], 'preserved')
 
     def test_visual_preflight_rejects_cross_channel_and_unbounded_work(self):
         request = self.root / 'image-request.json'
