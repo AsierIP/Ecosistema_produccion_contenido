@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
 async function main() {
   const [rootArg, channelId, mode] = process.argv.slice(2);
   const root = path.resolve(rootArg);
-  if (!['check', 'status', 'connect'].includes(mode) || !/^[a-z0-9-]+$/.test(channelId)) {
+  if (!['check', 'status', 'connect', 'inspect', 'inspect-upload'].includes(mode) || !/^[a-z0-9-]+$/.test(channelId)) {
     throw new Error('Invalid browser operation');
   }
   const channel = JSON.parse(fs.readFileSync(path.join(root, 'channels', channelId + '.json'), 'utf8').replace(/^\uFEFF/, ''));
@@ -70,6 +70,23 @@ async function main() {
     const identityMatch = current.hostname === 'studio.youtube.com' && current.pathname === '/channel/' + account;
     const studioControls = await page.getByRole('button', {name: /^(Crear|Create)$/}).first().isVisible();
     saveStatus(identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED');
+    if (['inspect', 'inspect-upload'].includes(mode) && identityMatch && studioControls) {
+      if (mode === 'inspect-upload') {
+        await page.getByRole('button', {name: 'Subir vídeos', exact: true}).click();
+        await page.locator('input[type="file"]').waitFor({state: 'attached', timeout: 15000});
+      }
+      const controls = await page.locator('button, [role="button"], a').evaluateAll(elements => elements
+        .filter(e => e.getClientRects().length)
+        .map(e => ({tag: e.tagName, id: e.id, role: e.getAttribute('role'),
+          label: e.getAttribute('aria-label'), text: (e.innerText || '').trim().slice(0, 160)}))
+        .filter(e => e.label || e.text).slice(0, 100));
+      const fields = await page.locator('input, textarea, [contenteditable="true"]').evaluateAll(elements => elements
+        .map(e => ({tag: e.tagName, id: e.id, type: e.getAttribute('type'), accept: e.getAttribute('accept'),
+          label: e.getAttribute('aria-label'), editable: e.getAttribute('contenteditable')})));
+      console.log(JSON.stringify({status: 'CHANNEL_READY', channel_id: channelId,
+        expected_account_id: account, controls, fields, publication_performed: false}));
+      return;
+    }
     console.log(JSON.stringify({status: identityMatch && studioControls ? 'CHANNEL_READY' : 'AUTH_REQUIRED',
       channel_id: channelId, expected_account_id: account,
       observed_host: current.hostname, observed_path: current.pathname,
