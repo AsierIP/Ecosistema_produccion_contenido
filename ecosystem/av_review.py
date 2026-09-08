@@ -111,6 +111,8 @@ def advance_reviews(root, queue):
                 inputs = [preflight, report, Path(manifest['output'])]
                 inputs += [Path(r['path']) for r in request['context'] if Path(r['path']).suffix.lower() != '.mp4']
                 if manifest.get('kind') == 'native_master_review_v1':
+                    from .native_quality_context import prepare as prepare_native_context
+                    inputs.append(prepare_native_context(root,steps,step))
                     from .metadata import prepare_native_metadata
                     from .native_batch import immutable
                     creative_inputs = [read_json(Path(r['path'])) for r in request['context']
