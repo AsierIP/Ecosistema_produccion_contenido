@@ -41,7 +41,7 @@ def resumable_upload(root, step):
 def run_upload(root, step):
     root = Path(root)
     channel = next(c for c in load_channels(root) if c['id'] == step['channel_id'])
-    refs = step['payload']['inputs']
+    refs = [{**r, 'bytes': Path(r['path']).stat().st_size} for r in step['payload']['inputs']]
     if any(file_hash(Path(r['path'])) != r['sha256'] for r in refs):
         raise ValueError('Upload inputs changed')
     out = root / '.runtime/jobs' / step['job_id'] / 'release/own-browser-upload'
