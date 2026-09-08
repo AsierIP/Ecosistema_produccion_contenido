@@ -10,6 +10,7 @@ import json
 import os
 import re
 from pathlib import Path
+from .cache import file_hash
 import sqlite3
 import subprocess
 import time
@@ -183,9 +184,21 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         runtime_tools = read_json(Path(packet['packet_path'])).get('runtime_tools',{})
         if set(runtime_tools) != {'ffmpeg','ffprobe'}:
             return {'status':'BLOCKED','reason':'Faltan herramientas audiovisuales locales verificadas','agent_started':False}
+        for tool in runtime_tools.values():
+            executable = Path(tool['path'])
+            if not executable.is_file() or file_hash(executable) != tool['sha256']:
+                return {'status':'BLOCKED','reason':'La herramienta audiovisual cambió antes de la revisión','agent_started':False}
         preflight_errors = quality_preflight(read_json(Path(packet["packet_path"])))
         if preflight_errors:
             return {"status": "BLOCKED", "reason": "QA preflight", "errors": preflight_errors, "agent_started": False}
+        # Fixed corrected contract: final-master scope plus declared executables.
+        # Historical attempts retain their records; this unit has the same bounded limit.
+        for artifact in artifacts:
+            source = Path(artifact)
+            if source.suffix == '.json' and source.stat().st_size < 100000:
+                value = read_json(source)
+                if isinstance(value,dict) and value.get('kind') == 'quality_preflight_v1' and value.get('scope') == 'final_master':
+                    unit_id = 'final-master-tools-v1'
         for artifact in artifacts:
             p = Path(artifact)
             if p.suffix == '.json' and p.stat().st_size < 100000:
