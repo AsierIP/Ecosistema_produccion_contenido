@@ -53,7 +53,7 @@ def recover_native_rejection(root, step, queue):
 
 
 def retry_transient_segment_review(root, step, queue):
-    if step['adapter'] != 'segment_review' or step['state'] not in {'blocked', 'uncertain'}:
+    if step['adapter'] not in {'segment_review', 'av_review'} or step['state'] not in {'blocked', 'uncertain'}:
         return False
     request_path = Path(step['payload']['inputs'][0]['path'])
     request = read_json(request_path)
@@ -70,7 +70,14 @@ def retry_transient_segment_review(root, step, queue):
         return False
     if file_hash(request_path) != step['payload']['inputs'][0]['sha256']:
         raise ValueError('Failed review request changed')
-    for ref in request['inputs']:
+    references = request['context'] if step['adapter'] == 'av_review' else request['inputs']
+    if step['adapter'] == 'av_review':
+        manifest = read_json(Path(request['manifest_path']))
+        if (file_hash(Path(request['manifest_path'])) != request['manifest_sha256']
+                or file_hash(Path(manifest['output'])) != request['master_sha256']
+                or intent.get('master_sha256') != request['master_sha256']):
+            raise ValueError('Failed master review belongs to different media')
+    for ref in references:
         if file_hash(Path(ref['path'])) != ref['sha256']:
             raise ValueError('Failed review input changed')
     retry_path = provider.parent / 'retry-request.json'

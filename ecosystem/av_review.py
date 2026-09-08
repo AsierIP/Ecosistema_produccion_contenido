@@ -13,6 +13,10 @@ def advance_reviews(root, queue):
     root = Path(root)
     steps = queue.list()
     created = []
+    from .segment_review import retry_transient_segment_review
+    for step in steps:
+        if step['adapter'] == 'av_review':
+            retry_transient_segment_review(root, step, queue)
     for step in steps:
         if step['state'] != 'accepted' or step['adapter'] not in {'cutout', 'native_master', 'av_review'}:
             continue
