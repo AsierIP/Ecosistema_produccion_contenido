@@ -29,7 +29,8 @@ STAGE_LABELS = {"creative": "Preparación del guion", "metadata": "Título y des
                 "captions": "Subtítulos sincronizados", "av_review": "Revisión audiovisual automática",
                 "visual": "Creación de imágenes", "vibes_generate": "Generación de clips en Vibes",
                 "segment_review": "Revisión audiovisual del clip", "segment_quality": "Selección independiente del clip",
-                "native_conform": "Movimiento fluido con la GPU", "native_visual": "Montaje visual de Religion"}
+                "native_conform": "Movimiento fluido con la GPU", "native_visual": "Montaje visual de Religion",
+                "native_master": "Montaje final con voz, música y subtítulos"}
 
 
 def now():

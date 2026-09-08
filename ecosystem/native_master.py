@@ -7,7 +7,7 @@ import wave
 from .cache import file_hash
 from .config import read_json, write_json
 from .media import discover, probe, decode
-from .native_batch import ref
+from .native_batch import ref, immutable
 
 
 def checked(reference):
@@ -84,6 +84,10 @@ def build_native_master(request_path, evidence, *, root):
     if not output.is_relative_to(Path('E:/Las palabras del señor/reels').resolve()):
         raise ValueError('Religion master must remain in the authorized E: root')
     music = read_json(checked(request['music_allocation']))
+    from .music_allocation import reserve
+    live_config = read_json(Path(root) / 'local.json')['channels']['religion']['music']
+    if reserve(root, request['job_id'], live_config) != music:
+        raise ValueError('Music reservation no longer matches its durable record')
     license_record = read_json(checked(music['license']))
     if (music.get('job_id') != request['job_id'] or music.get('duration_ms') != 31250
             or music.get('status') != 'reserved' or license_record.get('status') != 'approved_music_source'
@@ -97,3 +101,46 @@ def build_native_master(request_path, evidence, *, root):
     return render_master(checked(request['visual']),checked(request['narration']),
         checked(request['captions']),checked(music['source']),output,Path(evidence),
         music_start=music['start_ms']/1000)
+
+
+def advance_native_master(root, queue, *, only_job):
+    root = Path(root)
+    steps = [s for s in queue.list() if s['job_id'] == only_job]
+    if any(s['adapter'] == 'native_master' for s in steps):
+        return
+    fit_path = root / '.runtime/jobs' / only_job / 'native-audio-fit/result.json'
+    if not fit_path.exists():
+        return
+    fit = read_json(fit_path)
+    voices = [s for s in steps if s['id'] == fit['voice_step'] and s['state'] == 'accepted']
+    captions = [s for s in steps if s['id'] == fit['captions_step'] and s['state'] == 'accepted']
+    visuals = [s for s in steps if s['adapter'] == 'native_visual' and s['state'] == 'accepted']
+    if len(voices) != 1 or len(captions) != 1 or len(visuals) != 1:
+        raise ValueError('Master requires one accepted voice, caption set and visual timeline')
+    audio = checked(fit)
+    if fit['source']['sha256'] != voices[0]['result']['sha256']:
+        raise ValueError('Fitted audio belongs to a different narration')
+    caption = captions[0]['result']
+    if caption['binding']['audio_sha256'] != voices[0]['result']['sha256']:
+        raise ValueError('Captions belong to a different narration')
+    visual = visuals[0]['result']
+    for artifact in (caption,visual):
+        checked(artifact)
+    source = read_json(checked(voices[0]['payload']['inputs'][0]))
+    creative = read_json(checked(source['creative']))
+    title = creative.get('editorial_title') or creative.get('title')
+    if not isinstance(title,str) or not title.strip() or any(c in title for c in '<>:"/\\|?*'):
+        raise ValueError('Native master needs an editorial title safe for a filename')
+    from .music_allocation import reserve
+    config = read_json(root / 'local.json')['channels']['religion'].get('music')
+    if not config:
+        raise ValueError('Configure the approved music source and historical allocation register')
+    folder = root / '.runtime/jobs' / only_job / 'native-master'
+    music = immutable(folder / 'music-allocation.json',reserve(root,only_job,config))
+    request = immutable(folder / 'request.json',{'kind':'native_master_v1','channel_id':'religion',
+        'job_id':only_job,'visual':ref(Path(visual['path'])),'narration':ref(audio),
+        'captions':ref(Path(caption['path'])),'music_allocation':ref(music),
+        'output':str(Path(visual['path']).parent / (title + '.mp4'))})
+    return queue.register({'schema_version':1,'channel_id':'religion','job_id':only_job,
+        'adapter':'native_master','mode':voices[0]['mode'],
+        'depends_on':[voices[0]['id'],captions[0]['id'],visuals[0]['id']], 'inputs':[ref(request)]})
