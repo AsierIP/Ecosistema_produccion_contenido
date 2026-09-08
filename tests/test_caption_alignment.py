@@ -34,6 +34,15 @@ class CaptionAlignmentTests(unittest.TestCase):
                 self.assertEqual(result['transcript'], 'Quizás húsares.')
                 self.assertEqual(verified_caption_transcript(result, transcript, 'sabias-que'), 'Quizás húsares.')
                 self.assertEqual(prepare_captions(request, output, root=root), result)
+            from ecosystem.metadata import prepare_metadata
+            brief = {'channel_id': 'sabias-que', 'title': 'Prueba',
+                     'description': 'Resumen de prueba.', 'transcript': transcript}
+            manifest = {'title': 'Prueba', 'caption_transcript': result['transcript'], 'scenes': []}
+            with self.assertRaises(ValueError):
+                prepare_metadata(brief, manifest, 'a' * 64)
+            self.assertEqual(prepare_metadata(brief, manifest, 'a' * 64, captions=result)['title'], 'Prueba')
+            with self.assertRaises(ValueError):
+                prepare_metadata({**brief, 'transcript': 'Otra historia.'}, manifest, 'a' * 64, captions=result)
             self.assertEqual(original, (file_hash(audio), file_hash(output / 'asr.json')))
             self.assertIn('Quizás', Path(result['path']).read_text(encoding='utf-8-sig'))
             evidence = Path(result['alignment']['path'])
@@ -42,6 +51,8 @@ class CaptionAlignmentTests(unittest.TestCase):
             write_json(evidence, changed)
             with self.assertRaises(ValueError):
                 verified_caption_transcript(result, transcript, 'sabias-que')
+            with self.assertRaises(ValueError):
+                prepare_metadata(brief, manifest, 'a' * 64, captions=result)
 
     def test_content_changes_and_other_channels_are_not_adapted(self):
         for canonical, heard, channel in [('1795', '1796', 'sabias-que'),

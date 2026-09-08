@@ -32,7 +32,7 @@ def prepare_native_metadata(creative, master_sha256):
             'status':'PREPARED_REQUIRES_INDEPENDENT_QA'}
 
 
-def prepare_metadata(brief, manifest, master_sha256):
+def prepare_metadata(brief, manifest, master_sha256, *, captions=None):
     if brief.get('channel_id') != 'sabias-que':
         raise ValueError('No metadata policy configured for this channel')
     title = brief.get('title', '')
@@ -44,7 +44,11 @@ def prepare_metadata(brief, manifest, master_sha256):
     if (not isinstance(title, str) or not 1 <= len(title.strip()) <= 100
             or any(c in title for c in '<>\r\n') or '#' in paragraph or CTA.casefold() in paragraph.casefold()):
         raise ValueError('Invalid title or summary paragraph')
-    if manifest.get('title') != title or manifest.get('caption_transcript') != brief.get('transcript'):
+    transcript = brief.get('transcript')
+    if captions is not None:
+        from .caption_alignment import verified_caption_transcript
+        transcript = verified_caption_transcript(captions, transcript, brief['channel_id'])
+    if manifest.get('title') != title or manifest.get('caption_transcript') != transcript:
         raise ValueError('Editorial brief does not match the rendered story')
     if not re.fullmatch('[0-9a-f]{64}', master_sha256):
         raise ValueError('Missing master hash')
@@ -99,7 +103,26 @@ def advance_metadata(root, queue):
                     or Path(result['output_path']).resolve() != Path(manifest['output']).resolve()
                     or file_hash(Path(result['output_path'])) != result['sha256']):
                 raise ValueError('Master changed after rendering')
-            value = prepare_metadata(read_json(Path(briefs[0]['path'])), manifest, result['sha256'])
+            captions = None
+            brief = read_json(Path(briefs[0]['path']))
+            if manifest.get('caption_transcript') != brief.get('transcript'):
+                candidates = [s for s in queue.list() if s['adapter'] == 'captions'
+                              and s['state'] == 'accepted' and s['job_id'] == step['job_id']
+                              and s['id'] in step['payload'].get('depends_on', [])]
+                if len(candidates) != 1:
+                    raise ValueError('Caption variant lacks the accepted source stage')
+                captions = candidates[0]['result']
+                declared = {str(Path(r['path']).resolve()): r['sha256'] for r in refs}
+                for ref in ({'path': captions['path'], 'sha256': captions['sha256']}, captions['alignment']):
+                    path = Path(ref['path']).resolve()
+                    if declared.get(str(path)) != ref['sha256'] or file_hash(path) != ref['sha256']:
+                        raise ValueError('Caption variant evidence changed after assembly')
+                normalized = read_json(Path(manifests[0]['path']).parent / 'normalized-audio.json')
+                if (Path(captions['path']).resolve() != Path(manifest['ass']).resolve()
+                        or normalized['source_sha256'] != captions['binding']['audio_sha256']
+                        or normalized['sha256'] != file_hash(Path(manifest['narration']))):
+                    raise ValueError('Caption variant belongs to a different soundtrack')
+            value = prepare_metadata(brief, manifest, result['sha256'], captions=captions)
             output = folder / 'metadata.json'
             if output.exists():
                 if read_json(output) != value:
