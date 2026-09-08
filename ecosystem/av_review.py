@@ -110,6 +110,18 @@ def advance_reviews(root, queue):
                 # The final reviewer gets the master plus local evidence, not all source MP4s.
                 inputs = [preflight, report, Path(manifest['output'])]
                 inputs += [Path(r['path']) for r in request['context'] if Path(r['path']).suffix.lower() != '.mp4']
+                if manifest.get('kind') == 'native_master_review_v1':
+                    from .metadata import prepare_native_metadata
+                    from .native_batch import immutable
+                    creative_inputs = [read_json(Path(r['path'])) for r in request['context']
+                                       if Path(r['path']).suffix.lower() == '.json']
+                    creatives = [c for c in creative_inputs if isinstance(c,dict)
+                                 and c.get('canonical_narration_text') == manifest['caption_transcript']
+                                 and c.get('editorial_title')]
+                    if len(creatives) != 1:
+                        raise ValueError('Native publication requires one bound editorial source')
+                    inputs.append(immutable(folder / 'metadata.json',
+                        prepare_native_metadata(creatives[0],evidence['master_sha256'])))
                 inputs += [Path(evidence[k]['path']) for k in ('provider_response', 'local_asr')]
                 if evidence.get('intro_asr'):
                     inputs.append(Path(evidence['intro_asr']['path']))

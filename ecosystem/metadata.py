@@ -10,6 +10,28 @@ from .config import read_json, write_json
 CTA = 'Dale like y suscríbete para saber más cosas.'
 
 
+def prepare_native_metadata(creative, master_sha256):
+    """Identify the biblical adaptation without presenting it as a literal quote."""
+    title = creative.get('editorial_title')
+    reference = creative.get('scripture_reference')
+    source = creative.get('scripture_source')
+    if (not isinstance(title,str) or not 1 <= len(title.strip()) <= 100
+            or any(c in title for c in '<>\r\n')
+            or not isinstance(reference,str) or not reference.strip()
+            or not isinstance(source,str) or not source.strip()
+            or creative.get('content_classification',{}).get('narration_kind') != 'editorial_adaptation'
+            or not re.fullmatch('[0-9a-f]{64}',master_sha256)):
+        raise ValueError('Native metadata requires the canonical editorial title and scripture context')
+    description = (f'{title}. Reflexión inspirada en {reference} ({source}). '
+                   'La narración es una adaptación editorial, no una cita literal del texto bíblico.\n\n'
+                   'Suscríbete a Las Palabras de Cristo para descubrir nuevas reflexiones.')
+    if len(description) > 5000:
+        raise ValueError('Native description exceeds the publication limit')
+    return {'kind':'publication_metadata_v1','channel_id':'religion','title':title,
+            'description':description,'master_sha256':master_sha256,
+            'status':'PREPARED_REQUIRES_INDEPENDENT_QA'}
+
+
 def prepare_metadata(brief, manifest, master_sha256):
     if brief.get('channel_id') != 'sabias-que':
         raise ValueError('No metadata policy configured for this channel')
