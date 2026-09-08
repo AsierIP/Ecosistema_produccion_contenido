@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from ecosystem.config import write_json, read_json
 from ecosystem.native_batch import ref
-from ecosystem.native_sequence import advance_sequence
+from ecosystem.native_sequence import advance_sequence, retry_prompt
 from ecosystem.vibes import validate_request
 
 
@@ -18,6 +18,15 @@ class QueueFixture:
 
 
 class NativeSequenceTests(unittest.TestCase):
+    def test_retry_does_not_accumulate_review_instructions(self):
+        base = 'Keep the walk, handover, emotional reaction and camera move.'
+        result = retry_prompt(base, ['Require an exact 3 cm gap'] * 100)
+        self.assertTrue(result.startswith(base))
+        self.assertNotIn('3 cm', result)
+        self.assertLess(len(result) - len(base), 700)
+        self.assertIn('receiver establishes support before the giver releases', result)
+        self.assertEqual(retry_prompt(base, []), base)
+
     def fixture(self, root):
         frame = root / 'start.png'
         frame.write_bytes(b'canonical pixels')

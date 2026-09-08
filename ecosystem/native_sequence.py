@@ -1,10 +1,23 @@
 """Connect accepted native scenes and bounded replacement batches without an agent."""
 from pathlib import Path
+import hashlib
 import re
 import shutil
 from .config import read_json, write_json
 from .cache import file_hash
 from .native_batch import ref, immutable
+
+
+def retry_prompt(prompt, defects):
+    """Keep review prose out of provider instructions; preserve the planned action."""
+    if not defects:
+        return prompt
+    return prompt + ('\n\nCONTINUITY DURING ACTION: Keep the planned movement, emotion and camera progression. '
+        'Track each existing prop as the same physical object throughout the shot. '
+        'During a transfer, the receiver establishes support before the giver releases; '
+        'hands move around that same object along continuous visible paths. '
+        'Stage contact, weight transfer and release in that causal order while breathing, '
+        'cloth and environmental motion continue naturally. Preserve the established entry and exit story states.\n')
 
 
 def advance_sequence(root, queue, path):
@@ -105,8 +118,7 @@ def advance_sequence(root, queue, path):
                     if file_hash(Path(rejection['path'])) != rejection['sha256']:
                         raise ValueError('Prior rejection changed')
                     defects.extend(read_json(Path(rejection['path']))['candidate']['rejection_causes'])
-        if defects:
-            prompt += '\n\nPREVIOUS BATCH DEFECTS TO CORRECT (preserve the canonical entry and exit states):\n' + '\n'.join(dict.fromkeys(defects))
+        prompt = retry_prompt(prompt, defects)
         prompt_file = folder / 'prompt.txt'
         if prompt_file.exists() and prompt_file.read_text(encoding='utf-8') != prompt:
             raise ValueError('Native retry prompt changed')
@@ -127,7 +139,7 @@ def advance_sequence(root, queue, path):
                    'sequence_id': spec['sequence_id'], 'continuity_from': segment['continuity_from'],
                    'batch_number': next_batch, 'count': 4, 'project_url': spec['project_url'], 'project_title': spec['project_title'],
                    'start_reference': ref(start), 'prompt': ref(prompt_file), 'selection_template': ref(template_path),
-                   'output_directory': str(Path(spec['native_root']) / segment_id / contract['source_batch']),
+                   'output_directory': str(Path(spec['native_root']) / ('revision-' + hashlib.sha256(spec['storyboard_revision'].encode()).hexdigest()[:12] if spec.get('storyboard_revision') else 'original') / segment_id / contract['source_batch']),
                    'inputs': [ref(start), ref(prompt_file), ref(template_path), ref(contract_path), ref(review_path)]}
         if spec.get('storyboard_revision'):
             request['storyboard_revision'] = spec['storyboard_revision']

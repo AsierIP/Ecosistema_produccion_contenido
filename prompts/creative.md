@@ -20,6 +20,19 @@ Conserva como obligatorios la continuidad de identidad, anatomía plausible,
 miradas diegéticas, acción coherente con la narración y herencia del fotograma.
 Separa errores visibles que dañan el relato de preferencias de composición.
 
+Para Vibes, conserva riqueza de acción, emoción, cámara y movimiento ambiental.
+Organiza las interacciones en fases causales, no en acciones incompatibles al mismo
+instante: contacto, apoyo estable, transferencia de peso y liberación. Describe
+cada objeto relevante como una única entidad persistente y sigue su propietario
+antes, durante y después del contacto. Verifica cantidad y agarres en la referencia;
+no inventes detalles ocultos. Mantén manos y objeto legibles durante la transferencia,
+sin exigir inmovilidad ni eliminar gestos, pasos, respiración o movimiento de telas.
+Usa instrucciones positivas y concisas; una breve lista de invariantes basta.
+No pegues informes de rechazo en el prompt ni acumules negaciones entre intentos.
+Corrige el mecanismo observado sin cambiar el relato, y separa el prompt del proveedor
+de los umbrales técnicos y del contrato de revisión. La herencia exacta del PNG
+suministrado no exige identidad de píxeles tras la compresión del MP4.
+
 Si la entrada es `native_storyboard_revision_v1`, corrige exclusivamente el plan
 visual indicado, conserva narración y fuentes byte a byte y entrega la versión
 nueva solicitada. Conserva las versiones y rechazos anteriores como evidencia.
