@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
+const { acquireProfile } = require('./upro-browser-session.cjs');
 
 async function main() {
   const [rootArg, channelId, mode] = process.argv.slice(2);
@@ -12,7 +13,16 @@ async function main() {
   const channel = JSON.parse(fs.readFileSync(path.join(root, 'channels', channelId + '.json'), 'utf8').replace(/^\uFEFF/, ''));
   const account = channel.platforms.youtube.channel_id || channel.platforms.youtube.account;
   if (!/^UC[A-Za-z0-9_-]{22}$/.test(account)) throw new Error('Missing exact YouTube channel');
-  const profile = path.join(root, '.runtime', 'browser-profiles', channelId);
+  const localPath = path.join(root, 'local.json');
+  const local = fs.existsSync(localPath) ? JSON.parse(fs.readFileSync(localPath, 'utf8').replace(/^\uFEFF/, '')) : {};
+  const profileId = local.youtube_login?.shared_profile_channel_id || channelId;
+  if (!/^[a-z0-9-]+$/.test(profileId)
+      || !fs.existsSync(path.join(root, 'channels', profileId + '.json'))) {
+    throw new Error('Invalid shared YouTube profile');
+  }
+  // Reuse the existing profile in place; never copy cookies or authentication data.
+  // The destination account above remains channel-specific.
+  const profile = path.join(root, '.runtime', 'browser-profiles', profileId);
   const report = path.join(root, '.runtime', 'upro', 'browser-connections', channelId + '.json');
   let identifierSubmitted = false;
   const saveStatus = status => {
@@ -23,12 +33,14 @@ async function main() {
       publication_performed: false, identifier_submitted: identifierSubmitted}));
     fs.renameSync(temporary, report);
   };
-  const context = await chromium.launchPersistentContext(profile, {
+  const releaseProfile = await acquireProfile(profile, 10000);
+  let context;
+  try {
+  context = await chromium.launchPersistentContext(profile, {
     channel: 'chrome', headless: mode !== 'connect', chromiumSandbox: true,
     locale: 'es-ES', timezoneId: 'Europe/Madrid', acceptDownloads: false,
     viewport: { width: 1280, height: 900 },
   });
-  try {
     const page = context.pages()[0] || await context.newPage();
     if (mode === 'check') {
       await page.setContent('<title>Upro browser check</title><h1>Upro</h1>');
@@ -120,7 +132,10 @@ async function main() {
       channel_id: channelId, expected_account_id: account,
       observed_host: current.hostname, observed_path: current.pathname,
       authenticated: Boolean(identityMatch && studioControls), publication_performed: false}));
-  } finally { await context.close(); }
+  } finally {
+    try { if (context) await context.close(); }
+    finally { await releaseProfile(); }
+  }
 }
 main().catch(error => {
   // Do not emit browser logs, cookies, navigation queries or credentials.
