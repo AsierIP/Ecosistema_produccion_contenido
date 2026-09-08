@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "id": "religion-reflection-5m-prototype-v1",
+  "line": "religion-five-minutes",
+  "status": "prototype_in_production",
+  "editorial": "Original Christian spiritual self-help grounded in the approved RV1909 script",
+  "target_seconds": 300,
+  "duration_tolerance_seconds": 30,
+  "delivery": {"width": 1920, "height": 1080, "fps": 24},
+  "blocks": 10,
+  "visual": {
+    "central_character": "Jesus",
+    "gaze": "directly into the viewer's eyes",
+    "camera": "locked composition with slow zoom in or out",
+    "action": "minimal natural breathing, occasional blinking and subtle wind",
+    "secondary_people": "allowed, background only, no complex interactions",
+    "source": "ten simple native video blocks based on one identity reference",
+    "retiming": "local GPU RIFE interpolation and slowed video playback",
+    "interpolate_across_cuts": false,
+    "reuse_reel_no_lens_gaze_rule": false
+  },
+  "voice": {"id": "Gacrux", "locale": "es-ES", "speed_factor": 1.0},
+  "reuse": "Reuse intact approved narration and music before generating missing assets",
+  "quality": {
+    "purpose": "Finish and learn from this prototype",
+    "minor_aesthetic_defects": "record for next production; do not regenerate repeatedly",
+    "required": ["complete narration", "literal captions", "full decode", "correct aspect ratio", "documented source and music rights"]
+  }
+}
