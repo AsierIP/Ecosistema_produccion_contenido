@@ -27,8 +27,8 @@ def advance_native_jobs(root, queue):
             advance_native_sequences(root, queue, only_job=job_id)
             advance_native_conforms(root, queue, only_job=job_id)
             advance_native_visual(root, queue, only_job=job_id)
-            advance_narration_fit(root, queue, only_job=job_id)
             advance_native_captions(root, queue, only_job=job_id)
+            advance_narration_fit(root, queue, only_job=job_id)
         except (ValueError, KeyError, OSError, RuntimeError, TypeError) as exc:
             blocked.add(job_id)
             problem = {'status': 'blocked', 'job_id': job_id, 'reason': str(exc)}

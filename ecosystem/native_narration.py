@@ -60,6 +60,10 @@ def advance_narration_fit(root, queue, *, only_job):
                 'audio_sha256': audio['sha256']})
         return
     if len(voices) == 2:
+        captions = [s for s in steps if s['adapter'] == 'captions'
+                    and voice['id'] in s['payload'].get('depends_on', [])]
+        if not captions or any(s['state'] in ('queued', 'running') for s in captions):
+            return  # Obtain literal word timings before diagnosing a short tail overrun.
         raise ValueError('Natural retake still exceeds timeline; preserve both takes for reconciliation')
     source = read_json(Path(voice['payload']['inputs'][0]['path']))
     request = immutable(Path(root) / '.runtime/jobs' / only_job / 'native-voice-retake/request.json',
