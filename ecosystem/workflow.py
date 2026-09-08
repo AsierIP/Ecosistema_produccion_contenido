@@ -167,7 +167,9 @@ def _register(queue, parent, adapter, request_path):
                            'inputs': [{'path': str(request_path.resolve()), 'sha256': file_hash(request_path)}]})
 
 
-def seed_ready_jobs(root, daily_plan, queue):
+def seed_ready_jobs(root, daily_plan, queue, *, mode='production'):
+    if mode not in {'production', 'canary'}:
+        raise ValueError('Unsupported production seed mode')
     root = Path(root)
     channels = {c['id']: c for c in load_channels(root)}
     local_path = root / 'local.json'
@@ -175,9 +177,17 @@ def seed_ready_jobs(root, daily_plan, queue):
     existing = {s['job_id'] for s in queue.list()}
     started = []
     for job in daily_plan['channels']:
-        if not job['ready'] or job['job_id'] in existing:
+        if job['job_id'] in existing:
             continue
         channel = channels[job['channel_id']]
+        if mode == 'production' and not job['ready']:
+            continue
+        if mode == 'canary':
+            from .upro_queue import canary_authorized
+            from .config import preparation_readiness
+            if (not canary_authorized(root, {'job_id': job['job_id'], 'channel_id': channel['id'], 'adapter': 'creative'})
+                    or preparation_readiness(channel, local, 'creative')):
+                continue
         corpus = Corpus(root / '.runtime/corpus.sqlite3')
         excerpts = []
         provenance = []
@@ -200,7 +210,7 @@ def seed_ready_jobs(root, daily_plan, queue):
         else:
             write_json(pack, value, exclusive=True)
         step = queue.register({'schema_version': 1, 'job_id': job['job_id'], 'channel_id': channel['id'],
-                               'adapter': 'creative', 'mode': 'production',
+                               'adapter': 'creative', 'mode': mode,
                                'inputs': [{'path': str(pack.resolve()), 'sha256': file_hash(pack)}]})
         started.append(step)
         existing.add(job['job_id'])

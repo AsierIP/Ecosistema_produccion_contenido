@@ -191,6 +191,7 @@ class Controller:
                 native_blocked = advance_native_jobs(self.root, self.queue)
                 eligible_plan = {**plan, 'channels': [c for c in plan['channels'] if self.enabled(c['channel_id'])]}
                 seed_ready_jobs(self.root, eligible_plan, self.queue)
+                seed_ready_jobs(self.root, eligible_plan, self.queue, mode='canary')
                 advance_production(self.root, self.queue)
                 from .montage import advance_montage
                 advance_montage(self.root, self.queue)

@@ -39,6 +39,19 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(seed_ready_jobs(self.root, self.plan, self.queue), [])
         self.assertEqual(self.queue.list(), [])
 
+    def test_canary_requires_exact_job_authorization_and_never_enables_production(self):
+        self.plan['channels'][0]['ready'] = False
+        grant = self.root / '.runtime/authorizations/canary-sabias-que.json'
+        self.assertEqual(seed_ready_jobs(self.root, self.plan, self.queue, mode='canary'), [])
+        value = {'authorized': True, 'job_id': 'different', 'adapters': ['creative'], 'user_instruction': 'Fixture grant'}
+        write_json(grant, value)
+        self.assertEqual(seed_ready_jobs(self.root, self.plan, self.queue, mode='canary'), [])
+        value['job_id'] = self.job['id']; write_json(grant, value)
+        self.assertEqual(len(seed_ready_jobs(self.root, self.plan, self.queue, mode='canary')), 1)
+        self.assertEqual(self.queue.list()[0]['mode'], 'canary')
+        self.assertFalse(self.plan['channels'][0]['ready'])
+        self.assertEqual(seed_ready_jobs(self.root, self.plan, Queue(self.root), mode='canary'), [])
+
     def test_distinct_jobs_reserve_distinct_candidates(self):
         corpus = Corpus(self.root / '.runtime/corpus.sqlite3')
         corpus.index(self.source_id, self.source)
