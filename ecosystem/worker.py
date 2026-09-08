@@ -175,9 +175,9 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         except (ValueError, OSError, KeyError) as exc:
             return {'status': 'BLOCKED', 'reason': str(exc), 'agent_started': False}
     if role == 'release':
-        from .release_worker import release_request
+        from .release_worker import browser_preflight
         try:
-            unit_id = release_request(read_json(Path(packet['packet_path'])))['action']
+            unit_id = browser_preflight(read_json(Path(packet['packet_path'])), root)['action']
         except (ValueError, OSError, KeyError, RuntimeError) as exc:
             return {'status': 'BLOCKED', 'reason': str(exc), 'agent_started': False}
     if role == 'visual':

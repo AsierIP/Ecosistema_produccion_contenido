@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from ecosystem.cache import file_hash
 from ecosystem.config import ROOT, load_channels, write_json
-from ecosystem.release_worker import release_request, start_operation, finish_operation
+from ecosystem.release_worker import release_request, start_operation, finish_operation, browser_preflight
 from ecosystem.store import Store, IntentUncertainError, QualityError
 from test_quality import quality_fixture
 
@@ -49,6 +49,23 @@ class ReleaseWorkerTests(unittest.TestCase):
             start_operation(self.packet, self.root)
         with Store(self.root / '.runtime/production.sqlite3') as store:
             self.assertEqual(store.list_intents(), [])
+
+    def test_browser_preflight_rejects_missing_auth_and_wrong_account_without_intent(self):
+        ready = {'status': 'CHANNEL_READY', 'authenticated': True,
+                 'channel_id': 'sabias-que', 'expected_account_id': self.account}
+        for observation in ({**ready, 'status': 'AUTH_REQUIRED'},
+                            {**ready, 'authenticated': False},
+                            {**ready, 'expected_account_id': 'wrong'},
+                            {**ready, 'channel_id': 'religion'}):
+            with self.subTest(observation=observation):
+                with patch('ecosystem.browser.check_browser', return_value=observation):
+                    with self.assertRaises(QualityError):
+                        browser_preflight(self.packet, self.root)
+                with Store(self.root / '.runtime/production.sqlite3') as store:
+                    self.assertEqual(store.list_intents(), [])
+        with patch('ecosystem.browser.check_browser', return_value=ready) as check:
+            self.assertEqual(browser_preflight(self.packet, self.root)['action'], 'upload')
+            check.assert_called_once_with('sabias-que', root=self.root, authenticate=True)
 
     def test_account_mismatch_rejected(self):
         write_json(self.request, {**self.data, 'expected_account_id': 'another-channel'})

@@ -9,6 +9,23 @@ from .release import prepare_youtube_schedule
 from .store import Store, QualityError
 
 
+def browser_preflight(packet, root):
+    """Observe the exact account before reserving an operation or agent budget."""
+    from .browser import check_browser
+    from subprocess import TimeoutExpired
+    request = release_request(packet)
+    try:
+        observation = check_browser(request['channel_id'], root=root, authenticate=True)
+    except TimeoutExpired as exc:
+        raise QualityError('La comprobación de YouTube no terminó; no se ha iniciado la subida') from exc
+    if (observation.get('status') != 'CHANNEL_READY'
+            or observation.get('authenticated') is not True
+            or observation.get('channel_id') != request['channel_id']
+            or observation.get('expected_account_id') != request['expected_account_id']):
+        raise QualityError('YouTube requiere iniciar sesión en el canal correcto desde el navegador de Upro')
+    return request
+
+
 def recover_verified_schedule(root, step, queue):
     """Resume a separately reconciled upload without rewriting its failed receipt."""
     from .cache import file_hash
