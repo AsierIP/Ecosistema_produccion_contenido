@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 import random
+import re
 import sqlite3
 import time
 from contextlib import contextmanager
@@ -15,7 +16,8 @@ from .media import probe, decode
 
 class SequenceLibrary:
     def __init__(self, root=ROOT):
-        self.path = Path(root) / '.runtime/sequence-library.sqlite3'
+        self.root = Path(root)
+        self.path = self.root / '.runtime/sequence-library.sqlite3'
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             db.executescript('''
@@ -58,7 +60,7 @@ class SequenceLibrary:
             raise ValueError('Library sequence fails full decoding')
         ident = hashlib.sha256(f'{channel}\0{profile}\0{digest}'.encode()).hexdigest()[:24]
         meta = {'duration_seconds':30, 'frames':720, 'style':'photorealistic',
-                'quality_status':qa['decision'],
+                'quality_status':qa['decision'], 'body_pose':qa.get('body_pose'),
                 'evidence_path':str(evidence), 'evidence_sha256':file_hash(evidence),
                 'voice':False, 'music':False, 'captions':False}
         with self.connect() as db:
@@ -87,6 +89,8 @@ class SequenceLibrary:
             raise ValueError('A matching passed sequence review is required')
         meta = json.loads(row['metadata'])
         meta.update(quality_status='PASS', evidence_path=str(evidence), evidence_sha256=file_hash(evidence))
+        if review.get('body_pose'):
+            meta['body_pose'] = review['body_pose']
         with self.connect() as db:
             db.execute('UPDATE sequences SET metadata=? WHERE id=?',(json.dumps(meta),ident))
         return self.get(ident)
@@ -107,7 +111,12 @@ class SequenceLibrary:
     def plan(self, *, plan_id, channel, profile, duration, seed):
         if not math.isfinite(duration) or not 0 < duration <= 3600:
             raise ValueError('Invalid bounded timeline duration')
-        binding = json.dumps([channel,profile,duration,str(seed)])
+        policy_file = self.root/'config/profiles'/f'{profile}.json' if re.fullmatch(r'[a-z0-9-]+',profile) else None
+        vary_pose = bool(policy_file and policy_file.exists() and read_json(policy_file).get('visual',{}).get('avoid_adjacent_body_pose'))
+        binding_parts = [channel,profile,duration,str(seed)]
+        if vary_pose:
+            binding_parts.append('vary-body-pose-v1')
+        binding = json.dumps(binding_parts)
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             saved = db.execute('SELECT * FROM sequence_plans WHERE id=?',(plan_id,)).fetchone()
@@ -115,24 +124,39 @@ class SequenceLibrary:
                 if saved['binding'] != binding:
                     raise ValueError('Timeline request changed; use a new plan id')
                 result = json.loads(saved['plan'])
+                previous_pose = None
                 for item in result['items']:
-                    self.verify(self.get(item['sequence_id']))
+                    row = self.get(item['sequence_id'])
+                    self.verify(row)
+                    pose = json.loads(row['metadata']).get('body_pose')
+                    if vary_pose and (not pose or pose == previous_pose or pose != item.get('body_pose')):
+                        raise ValueError('Saved sequence postures changed or repeat')
+                    previous_pose = pose
                 return result
             assets = [dict(r) for r in db.execute('SELECT * FROM sequences WHERE channel=? AND profile=?',(channel,profile))
                       if json.loads(r['metadata']).get('quality_status')=='PASS']
+            if vary_pose:
+                assets = [a for a in assets if json.loads(a['metadata']).get('body_pose')]
+                if duration>30 and len({json.loads(a['metadata'])['body_pose'] for a in assets})<2:
+                    raise ValueError('At least two verified body postures are required')
             if not assets or (duration>30 and len({r['environment'] for r in assets})<2):
                 raise ValueError('At least two environments are required to avoid adjacent repetition')
             for row in assets:
                 self.verify(row)
             rng, items, counts, previous = random.Random(str(seed)), [], {}, None
+            previous_pose = None
             for i in range(math.ceil(duration/30)):
-                eligible = [a for a in assets if a['environment'] != previous]
+                eligible = [a for a in assets if a['environment'] != previous and
+                            (not vary_pose or json.loads(a['metadata'])['body_pose'] != previous_pose)]
+                if not eligible:
+                    raise ValueError('No compatible environment and posture for the next sequence')
                 fewest = min(counts.get(a['id'],0) for a in eligible)
                 chosen = rng.choice([a for a in eligible if counts.get(a['id'],0)==fewest])
                 counts[chosen['id']] = counts.get(chosen['id'],0)+1
                 previous = chosen['environment']
+                previous_pose = json.loads(chosen['metadata']).get('body_pose')
                 items.append({'sequence_id':chosen['id'], 'path':chosen['path'],
-                              'sha256':chosen['sha256'], 'environment':previous,
+                              'sha256':chosen['sha256'], 'environment':previous, 'body_pose':previous_pose,
                               'start_seconds':i*30, 'duration_seconds':min(30,duration-i*30)})
             result = {'plan_id':plan_id,'channel':channel,'profile':profile,
                       'duration_seconds':duration,'seed':str(seed),'items':items}

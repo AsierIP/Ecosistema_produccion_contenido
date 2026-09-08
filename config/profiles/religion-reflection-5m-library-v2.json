@@ -14,7 +14,8 @@
     "native_slowdown_max": 2,
     "second_slowdown": false,
     "interpolate_across_cuts": false,
-    "body_pose_variation": "Change body posture between 30-second sequences: seated/standing, torso orientation and hand placement; preserve character identity. A location change alone is insufficient."
+    "body_pose_variation": "Change body posture between 30-second sequences: seated/standing, torso orientation and hand placement; preserve character identity. A location change alone is insufficient.",
+    "avoid_adjacent_body_pose": true
   },
   "voice": {
     "id": "Gacrux",

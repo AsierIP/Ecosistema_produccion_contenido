@@ -47,3 +47,37 @@ class SequencePlanningTests(unittest.TestCase):
             db.execute('UPDATE sequences SET metadata=? WHERE id="0"',(json.dumps(meta),))
             db.execute('UPDATE sequences SET channel="other" WHERE id="1"')
         with self.assertRaises(ValueError):self.plan()
+
+
+class PosePlanningTests(unittest.TestCase):
+    plan = SequencePlanningTests.plan
+    def setUp(self):
+        SequencePlanningTests.setUp(self)
+        config=self.root/'config/profiles'
+        config.mkdir(parents=True)
+        (config/'photo.json').write_text(json.dumps({'visual':{'avoid_adjacent_body_pose':True}}))
+        with self.library.connect() as db:
+            for i,pose in enumerate(['seated','seated','standing']):
+                row=db.execute('SELECT metadata FROM sequences WHERE id=?',(str(i),)).fetchone()
+                meta=json.loads(row['metadata']);meta['body_pose']=pose
+                db.execute('UPDATE sequences SET metadata=? WHERE id=?',(json.dumps(meta),str(i)))
+
+    def test_posture_changes_even_when_environments_differ(self):
+        items=self.plan()['items']
+        self.assertTrue(all(a['body_pose']!=b['body_pose'] for a,b in zip(items,items[1:])))
+        self.assertTrue(all(a['environment']!=b['environment'] for a,b in zip(items,items[1:])))
+
+    def test_unknown_posture_is_not_selected(self):
+        with self.library.connect() as db:
+            row=db.execute('SELECT metadata FROM sequences WHERE id="0"').fetchone()
+            meta=json.loads(row['metadata']);meta.pop('body_pose')
+            db.execute('UPDATE sequences SET metadata=? WHERE id="0"',(json.dumps(meta),))
+        self.assertNotIn('0',[x['sequence_id'] for x in self.plan()['items']])
+
+    def test_cached_plan_checks_corrected_posture(self):
+        self.plan()
+        with self.library.connect() as db:
+            row=db.execute('SELECT metadata FROM sequences WHERE id="2"').fetchone()
+            meta=json.loads(row['metadata']);meta['body_pose']='seated'
+            db.execute('UPDATE sequences SET metadata=? WHERE id="2"',(json.dumps(meta),))
+        with self.assertRaises(ValueError): self.plan()

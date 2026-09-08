@@ -3,6 +3,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import time
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from ecosystem.config import ROOT,read_json,write_json
@@ -21,8 +22,20 @@ def main():
     progress=p/'remaining-progress.json'
     def run(script,request,label):
         write_json(progress,dict(stage=label,status='running',publication='hold_for_review'))
-        with (p/(label+'.log')).open('a',encoding='utf-8') as log:
-            result=subprocess.run([command[0],str(ROOT/'scripts'/script),str(ROOT),str(request)],env=env,stdout=log,stderr=subprocess.STDOUT,timeout=3600)
+        for retry in range(3):
+            with (p/(label+'.log')).open('a',encoding='utf-8') as log:
+                result=subprocess.run([command[0],str(ROOT/'scripts'/script),str(ROOT),str(request)],env=env,stdout=log,stderr=subprocess.STDOUT,timeout=3600)
+            if result.returncode == 0 or script != 'upro-reflection-upload.cjs':
+                break
+            upload_request=read_json(request)
+            receipts=[Path(upload_request['output'])/(item['id']+'.json') for item in upload_request['items']]
+            states=[read_json(file) for file in receipts if file.exists()]
+            failed=[state for state in states if state.get('state')=='failed_confirmed' and state.get('attempts',1)<3]
+            uncertain=[state for state in states if state.get('state') not in {'uploaded','failed_confirmed'}]
+            if not failed or uncertain:
+                break
+            write_json(progress,dict(stage=label,status='retrying_confirmed_upload_failure',publication='hold_for_review'))
+            time.sleep(10)
         if result.returncode:
             write_json(progress,dict(stage=label,status='needs_reconciliation',log=str(p/(label+'.log')),publication='hold_for_review'))
             raise RuntimeError(label+' requires reconciliation; no automatic resubmission')

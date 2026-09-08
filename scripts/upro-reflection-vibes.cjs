@@ -21,13 +21,20 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
   const gallery=async()=>{
    await page.goto(r.project_url);await page.waitForTimeout(1500);
    const login=page.getByRole('button',{name:'Iniciar sesión',exact:true});
-   await Promise.any([login.waitFor({state:'visible',timeout:30000}),cards().first().waitFor({state:'attached',timeout:30000})]);
-   if(await login.isVisible()){
-    // Re-enter the already authenticated SSO session; never fill credentials here.
-    await login.click();await page.getByText('Proyectos',{exact:true}).first().waitFor({timeout:20000});
-    await page.goto(r.project_url);
+   const projectId=new URL(r.project_url).pathname.split('/').pop();
+   const projectTile=page.locator('[data-analytics-id="project_thumbnail_click"][data-analytics-media-id="'+projectId+'"]');
+   const deadline=Date.now()+60000;let entered=false,opened=false;
+   while(Date.now()<deadline){
+    if(await cards().count())break;
+    if(!entered&&await login.isVisible().catch(()=>false)){
+     entered=true;await login.click();await page.getByText('Proyectos',{exact:true}).first().waitFor({timeout:20000});
+    }else if(!opened&&await projectTile.isVisible().catch(()=>false)){
+     opened=true;await projectTile.click();
+    }
+    await page.waitForTimeout(750);
    }
-   await cards().first().waitFor({state:'attached',timeout:30000});await page.waitForLoadState('networkidle',{timeout:10000}).catch(()=>{});
+   if(!await cards().count())throw Error('Project gallery unavailable after session reconciliation');
+   await page.waitForLoadState('networkidle',{timeout:3000}).catch(()=>{});
    return cards().evaluateAll(es=>es.map(e=>({id:e.getAttribute('data-analytics-media-id'),video:!!e.querySelector('video[src]'),label:(e.innerText||'').trim()})));
   };
   for(const [i,item] of r.items.entries()){
