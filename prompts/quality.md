@@ -68,4 +68,12 @@ independent_review; cada uno requiere passed, master_sha256 y evidencia real.
 El último identifica un reviewer_id distinto del productor. No copies un PASS
 del productor ni inventes una reproducción para completar este contrato.
 
+Formato de `qa.json`: `checks` es un objeto cuyas claves son los siete nombres
+anteriores, no una lista. `timeline.segments` es la lista detallada de segmentos
+con rutas, hashes, frames, fps e interpolación; no es un número. Puedes conservar
+la estructura de la evidencia de timeline declarada después de contrastarla;
+añade tus métricas resumidas en otro campo. Valida el JSON con
+`ecosystem.quality.validate_qa` antes de cerrar el recibo. No gastes una nueva
+revisión semántica para convertir una lista de checks en el objeto requerido.
+
 `inputs_reviewed` contiene solo entradas declaradas en la cápsula, con ruta, hash y bytes. `artifacts` contiene exclusivamente informes nuevos escritos dentro de `output_directory`; nunca pongas el máster ni entradas externas en artifacts. La prevalidación técnica es una condición de entrada, no sustituye tu revisión independiente. Si la capacidad declarada no está disponible realmente, devuelve BLOCK inmediatamente sin buscar herramientas alternativas ni explorar el repositorio.

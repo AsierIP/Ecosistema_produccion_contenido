@@ -297,6 +297,17 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
         except subprocess.TimeoutExpired:
             state = "uncertain"
             errors.append("Tiempo máximo excedido; reconciliar los artefactos antes de otro intento")
+            if role == 'quality' and not native_context:
+                try:
+                    from .final_qa_receipt import seal_completed_native_report
+                    seal_completed_native_report(read_json(Path(packet['packet_path'])))
+                    state = 'accepted'
+                    errors = []
+                    write_json(output / 'timeout-recovery.json', {'kind': 'completed_independent_report',
+                        'provider_calls': 0, 'previous_outcome': 'timeout_after_saved_qa',
+                        'judgment_changed': False}, exclusive=True)
+                except (ValueError, KeyError, OSError, TypeError):
+                    pass  # Incomplete or unsupported judgments still require reconciliation.
         except (OSError, ValueError, KeyError, RuntimeError) as exc:
             errors.append(str(exc))
         # Parse even partial events on timeout/error before capping retained logs.
