@@ -23,9 +23,13 @@ const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v,null,2));
    const login=page.getByRole('button',{name:'Iniciar sesión',exact:true});
    const projectId=new URL(r.project_url).pathname.split('/').pop();
    const projectTile=page.locator('[data-analytics-id="project_thumbnail_click"][data-analytics-media-id="'+projectId+'"]');
-   const deadline=Date.now()+60000;let entered=false,opened=false;
+   const deadline=Date.now()+60000;let entered=false,opened=false,retries=0;
    while(Date.now()<deadline){
     if(await cards().count())break;
+    const retry=page.getByRole('button',{name:'Reintentar',exact:true});
+    if(retries<2&&await retry.isVisible().catch(()=>false)){
+     retries++;await retry.click();await page.waitForTimeout(2000);continue;
+    }
     if(!entered&&await login.isVisible().catch(()=>false)){
      entered=true;await login.click();await page.getByText('Proyectos',{exact:true}).first().waitFor({timeout:20000});
     }else if(!opened&&await projectTile.isVisible().catch(()=>false)){
