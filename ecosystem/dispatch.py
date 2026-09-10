@@ -2,12 +2,25 @@
 from __future__ import annotations
 import json
 import shutil
+import os
 from pathlib import Path
 from .cache import cache_key, file_hash
 from .config import ROOT, load_channels, read_json, write_json
 from .store import Store
 
 ROLE_STAGES = {"creative": "script", "visual": "assets", "quality": "qa", "release": "publish", "metadata": "script"}
+
+
+def codex_executable():
+    """Desktop launches do not necessarily inherit Codex's terminal PATH."""
+    found = shutil.which('codex')
+    if found and Path(found).is_file():
+        return found
+    base = Path(os.environ.get('LOCALAPPDATA', ''))/'OpenAI/Codex/bin'
+    candidates = list(base.glob('*/codex.exe')) if base.is_dir() else []
+    if not candidates:
+        raise FileNotFoundError('No se encuentra el motor Codex instalado')
+    return str(max(candidates, key=lambda p:p.stat().st_mtime))
 
 def build_packet(job_id, role, artifacts=(), root=ROOT):
     if role not in ROLE_STAGES:
@@ -75,7 +88,7 @@ def build_packet(job_id, role, artifacts=(), root=ROOT):
     packet_path = output / "packet.json"
     write_json(packet_path, packet)
     receipt = output / "receipt.json"
-    command = [shutil.which("codex") or "codex", "exec", "--model", routing["model"],
+    command = [codex_executable(), "exec", "--model", routing["model"],
                "-c", 'forced_login_method="chatgpt"',
                "-c", f'model_reasoning_effort="{routing["effort"]}"',
                "--sandbox", "workspace-write", "--cd", str(root),

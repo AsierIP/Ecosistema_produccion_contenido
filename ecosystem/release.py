@@ -79,6 +79,22 @@ def prepare_youtube_schedule(store, upload_intent_id, *, root=ROOT, now=None):
 def validate_schedule_receipt(receipt, intent):
     """Match remote scheduling evidence exactly; scheduled is not public."""
     payload = intent['payload']
+    if receipt.get('outcome') == 'public_observed_after_target':
+        # Reconcile the final outcome without inventing an observed schedule or
+        # its historical publication time. The exact uploaded video is public.
+        from .quality import validate_publication_receipt
+        public = receipt.get('public_receipt', {})
+        errors = validate_publication_receipt(public, 'youtube', intent['master_sha256'], payload.get('expected_account_id'))
+        if public.get('url') != 'https://www.youtube.com/shorts/' + payload.get('video_id', ''):
+            errors.append('Public reconciliation video mismatch')
+        try:
+            observed = datetime.fromisoformat(public['evidence']['verified_at'].replace('Z', '+00:00'))
+            target = datetime.fromisoformat(payload['publishAt'].replace('Z', '+00:00'))
+            if observed.tzinfo is None or observed < target:
+                errors.append('Public observation precedes reserved schedule')
+        except (KeyError, ValueError, TypeError):
+            errors.append('Missing public observation time')
+        return errors
     checks = {
         'master_sha256': intent['master_sha256'],
         'account_id': payload.get('expected_account_id'),

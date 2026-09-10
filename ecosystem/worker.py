@@ -211,7 +211,7 @@ def run_stage(job_id, role, artifacts=(), *, root=ROOT, execute=False, timeout=N
             if source.suffix == '.json' and source.stat().st_size < 100000:
                 value = read_json(source)
                 if isinstance(value,dict) and value.get('kind') == 'quality_preflight_v1' and value.get('scope') == 'final_master':
-                    unit_id = 'final-master-tools-v1'
+                    unit_id = 'final-master-tools-v2-runner-routing'
         for artifact in artifacts:
             p = Path(artifact)
             if p.suffix == '.json' and p.stat().st_size < 100000:

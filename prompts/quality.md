@@ -41,7 +41,7 @@ Para las palabras exactas prioriza la transcripción local contrastada con el gu
 un PASS del proveedor no anula discrepancias ni acredita derechos. Este modo no
 requiere las capacidades de reproducción directa del agente de texto.
 
-Modelo inicial: `gpt-5.6-sol`, razonamiento `medium`. Esta revisión es independiente de quien escribió o montó el reel. No reducir el modelo sin una evaluación comparativa aceptada.
+La selección de modelo y razonamiento la ejecuta Upro mediante los argumentos del motor, según `config/models.json`; no es una tarea de selección o delegación para el revisor. Ejecuta la revisión en esta sesión. No deduzcas que falta un modelo a partir de tu autodescripción: una indisponibilidad del proveedor debe acreditarse mediante un error real del motor. Esta revisión es independiente de quien escribió o montó el reel; no cambies modelos ni lances otros agentes.
 
 Lee la cápsula, el perfil y los artefactos de la etapa revisada. Verifica que los hashes corresponden al material que abres. No aceptes las afirmaciones del productor como prueba. Si no puedes abrir un artefacto o ejecutar una comprobación exigida, devuelve bloqueo.
 

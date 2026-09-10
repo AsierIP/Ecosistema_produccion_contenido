@@ -181,12 +181,23 @@ class Controller:
             return
         try:
             plan = plan_daily(self.root)
+            # Network reconciliation must not hold the panel's status lock.
+            if not self.controls['paused'] and not self.stopping:
+                from .recovery import recover_elapsed_publications
+                if recover_elapsed_publications(self.root, self.queue):
+                    self.event('Publicación existente reconciliada sin volver a subir el vídeo.')
             with self.guard:
                 self.plan = plan
                 self.last_error = None
                 self.active = {k: v for k, v in self.active.items() if not v["future"].done()}
                 if self.controls["paused"] or self.stopping:
                     return
+                from .recovery import recover_review_timeouts, recover_missing_runner, recover_editorial_context
+                recover_missing_runner(self.root, self.queue)
+                recover_editorial_context(self.root, self.queue)
+                recovered = recover_review_timeouts(self.root, self.queue)
+                if recovered:
+                    self.event('Revisión interrumpida recuperada; se reanuda con los archivos existentes.')
                 from .workflow import seed_ready_jobs, advance_production
                 from .caption_alignment import recover_saved_alignments
                 recover_saved_alignments(self.root, self.queue)

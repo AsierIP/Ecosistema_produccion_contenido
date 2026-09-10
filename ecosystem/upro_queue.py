@@ -142,6 +142,11 @@ class Queue:
         steps = self.list()
         created = []
         for step in steps:
+            if step['adapter'] == 'release' and step['state'] == 'reconciled':
+                error = self.root / '.runtime/jobs' / step['job_id'] / 'handoffs' / ('error-release-' + step['id'] + '.json')
+                if error.exists() and read_json(error).get('status') != 'resolved':
+                    write_json(error, {'status':'resolved', 'reason':'Operation already reconciled', 'step_id':step['id']})
+                continue
             if step['adapter'] != 'release' or step['state'] not in {'accepted', 'blocked', 'uncertain'}:
                 continue
             if any(s['adapter'] == 'release' and step['id'] in s['payload'].get('depends_on', []) for s in steps):

@@ -11,7 +11,7 @@ def channel_history(root, channel):
     if not path.exists():
         return None
     history = read_json(path)
-    account = channel['platforms']['youtube'].get('channel_id')
+    account = channel['platforms']['youtube'].get('channel_id') or channel['platforms']['youtube'].get('account')
     if history.get('channel_id') != channel['id'] or history.get('account_id') != account:
         raise ValueError('Editorial history belongs to another channel')
     evidence = history['source_evidence']
@@ -53,7 +53,7 @@ def creative_context_preflight(packet):
     if (not isinstance(history, dict) or history.get('channel_id') != packet['channel']['id']
             or not isinstance(history.get('topics'), list) or not history.get('scope')):
         raise ValueError('Falta el historial de temas del canal; preparar contexto antes de ejecutar el guionista')
-    account = packet['channel']['platforms']['youtube'].get('channel_id')
+    account = packet['channel']['platforms']['youtube'].get('channel_id') or packet['channel']['platforms']['youtube'].get('account')
     if not account or history.get('account_id') != account:
         raise ValueError('Editorial history belongs to another YouTube account')
     if any(not isinstance(topic, str) or not topic.strip() for topic in history['topics']):

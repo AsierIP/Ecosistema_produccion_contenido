@@ -2,7 +2,9 @@
   "schema_version": 1,
   "timezone": "Europe/Madrid",
   "daily_reels_per_channel": 1,
-  "active_platforms": ["youtube"],
+  "active_platforms": [
+    "youtube"
+  ],
   "production_time": "09:00",
   "production_time_status": "proposed",
   "publication_time": null,
@@ -23,7 +25,11 @@
   "monthly_budget_eur": 0,
   "budget_scope": "additional_services_excluding_existing_chatgpt_subscription",
   "runtime": "codex_subscription",
-  "automatic_execution_enabled": false,
-  "activation_requires": ["channel_readiness", "end_to_end_canary", "provider_sessions"],
+  "automatic_execution_enabled": true,
+  "activation_requires": [
+    "channel_readiness",
+    "end_to_end_canary",
+    "provider_sessions"
+  ],
   "git_remote_requested": "git@github.com:AsierIP/Ecosistema_produccion_contenido.git"
 }
